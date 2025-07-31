@@ -1,0 +1,223 @@
+[project]
+name = "REPO_NAME"
+version = "0.1.0"
+description = ""
+authors = [{ name = "Radosław Ganczarek", email = "radoslaw@ganczarek.in" }]
+license = { text = " MIT license" }
+readme = "README.md"
+requires-python = ">=3.13.0,<3.14"
+dynamic = ['dependencies']
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+codespell = "^2.4.1"
+deptry = "^0.23.0"
+diff-cover = "^9.6.0"
+factory-boy = "^3.3.3"
+freezegun = "^1.5.2"
+import-linter = "^2.3"
+mypy = "^1.16.0"
+poethepoet = "^0.36.0"
+pylint = "^3.3.7"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+ruff = "^0.12.0"
+
+# POE
+
+[tool.poe]
+envfile = ".env.dev"
+
+[tool.poe.env]
+PYTHONPATH = "src"
+
+[tool.poe.tasks]
+# Tools
+black = "black ."
+codespell = "codespell src tests"
+deptry = "deptry ."
+mypy = "mypy ."
+pylintdq = "diff-quality --violations=pylint --compare-branch=main"
+imports = "lint-imports"
+pylint = "pylint ."
+ruff = "ruff check ."
+ruff-fix = "ruff check --fix  ."
+# Series
+check = ["black", "codespell", "ruff-fix", "mypy", "imports", "pylintdq"]
+update = [
+    { cmd = "pre-commit autoupdate" },
+    { cmd = "pip install -U pip" },
+    { cmd = "pip install -U poetry" },
+    { cmd = "poetry update" },
+    "deptry",
+    { cmd = "poetry show -o" },
+]
+
+# BLACK
+
+[tool.black]
+line-length = 88
+preview = true
+skip-magic-trailing-comma = true
+target-version = ['py313']
+
+# CODESPELL
+
+[tool.codespell]
+skip = '*.po,*.lock'
+
+# COVERAGE
+
+[tool.coverage.run]
+branch = true
+source = ["src", "tests"]
+omit = ["src/{{REPO_NAME}}/specs/*", "src/{{REPO_NAME}}/binds/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "# pragma: no cover"]
+
+# DEPTRY
+
+[tool.deptry]
+known_first_party = ["{{REPO_NAME}}"]
+
+# MYPY
+
+[tool.mypy]
+check_untyped_defs = true
+color_output = true
+disallow_any_decorated = true
+disallow_any_explicit = true
+disallow_any_expr = false
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+exclude = ["tests/.*.py"]
+python_version = "3.13"
+plugins = []
+warn_incomplete_stub = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+# RUFF
+
+[tool.ruff]
+fix = false
+line-length = 88
+output-format = 'concise'
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+    "COM",
+    "CPY",
+    "D",
+    "PLR0911",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    "ANN",     # flake8-annotations
+    "PLR0913", # too-many-arguments
+    "PLR0917", # too-many-positional-arguments
+    "S101",    # assert
+]
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-values-type = "tuple"
+
+[tool.importlinter]
+root_package = "{{REPO_NAME}}"
+
+[[tool.importlinter.contracts]]
+name = "gates not in gears"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.gears"]
+forbidden_modules = ["{{REPO_NAME}}.gates"]
+
+[[tool.importlinter.contracts]]
+name = "gates not in links"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.links"]
+forbidden_modules = ["{{REPO_NAME}}.gates"]
+
+[[tool.importlinter.contracts]]
+name = "gates not in pacts"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.pacts"]
+forbidden_modules = ["{{REPO_NAME}}.gates"]
+
+[[tool.importlinter.contracts]]
+name = "gears not in specs"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.specs"]
+forbidden_modules = ["{{REPO_NAME}}.gears"]
+
+[[tool.importlinter.contracts]]
+name = "links not in gates"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.gates"]
+forbidden_modules = ["{{REPO_NAME}}.links"]
+
+[[tool.importlinter.contracts]]
+name = "links not in gears"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.gears"]
+forbidden_modules = ["{{REPO_NAME}}.links"]
+
+[[tool.importlinter.contracts]]
+name = "links not in pacts"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.pacts"]
+forbidden_modules = ["{{REPO_NAME}}.links"]
+
+[[tool.importlinter.contracts]]
+name = "links not in specs"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.specs"]
+forbidden_modules = ["{{REPO_NAME}}.links"]
+
+[[tool.importlinter.contracts]]
+name = "specs not in gates"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.gates"]
+forbidden_modules = ["{{REPO_NAME}}.specs"]
+
+[[tool.importlinter.contracts]]
+name = "specs not in gears"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.gears"]
+forbidden_modules = ["{{REPO_NAME}}.specs"]
+
+[[tool.importlinter.contracts]]
+name = "specs not in links"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.links"]
+forbidden_modules = ["{{REPO_NAME}}.specs"]
+
+[[tool.importlinter.contracts]]
+name = "specs not in pacts"
+type = "forbidden"
+source_modules = ["{{REPO_NAME}}.pacts"]
+forbidden_modules = ["{{REPO_NAME}}.specs"]

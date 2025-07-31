@@ -1,0 +1,40 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    },
+    "black-formatter.args": [
+        "--config=${workspaceFolder}/pyproject.toml"
+    ],
+    "black-formatter.importStrategy": "fromEnvironment",
+    "black-formatter.interpreter": [
+        ".venv/bin/python"
+    ],
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
+    "mypy-type-checker.args": [
+        "--config-file=${workspaceFolder}/pyproject.toml"
+    ],
+    "mypy-type-checker.interpreter": [
+        ".venv/bin/python"
+    ],
+    "mypy-type-checker.preferDaemon": true,
+    "mypy-type-checker.reportingScope": "workspace",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.envFile": "${workspaceFolder}/.env.test",
+    "python.poetryPath": ".venv/bin/poetry",
+    "python.testing.autoTestDiscoverOnSaveEnabled": false,
+    "ruff.path": [
+        ".venv/bin/ruff"
+    ],
+    "ruff.configurationPreference": "filesystemFirst",
+    "pylint.importStrategy": "fromEnvironment",
+    "pylint.path": [
+        ".venv/bin/pylint"
+    ],
+    "pylint.args": [
+        "--rcfile=.pylintrc"
+    ],
+}
