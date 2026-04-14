@@ -1,0 +1,16 @@
+[settings]
+# Sequential execution to avoid race conditions in parallel tests
+jobs = 1
+
+[tools]
+python = "3.10"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.install]
+run = """
+pip install -U pip
+pip install -U poetry
+poetry install
+"""

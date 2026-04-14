@@ -1,0 +1,15 @@
+package:
+    type: str
+    help: Name of the main Python module
+
+package_description:
+    type: str
+    help: Description of the project
+
+package_author:
+    type: str
+    help: Name Surname <namesurname@email.com>
+
+package_license:
+    type: str
+    help: License name
