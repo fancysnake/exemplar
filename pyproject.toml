@@ -1,0 +1,240 @@
+[project]
+name = "exemplar"
+version = "0.1.0"
+description = "One set of standards across many repositories, checked in each repository's CI"
+authors = [{ name = "Radosław Ganczarek", email = "radoslaw@ganczarek.in" }]
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+dependencies = ["typer (>=0.27.2,<1.0.0)"]
+
+[project.scripts]
+exemplar = "exemplar.inits.cli:run"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [{ include = "exemplar", from = "src" }]
+
+[dependency-groups]
+dev = [
+    "black (>=26.3.1,<27.0.0)",
+    "codespell (>=2.4.2,<3.0.0)",
+    "deptry (>=0.25.1,<0.26.0)",
+    "import-linter (>=2.11,<3.0)",
+    "mypy (>=2.3.0,<3.0.0)",
+    "pylint (>=4.0.5,<5.0.0)",
+    "ruff (>=0.16.0,<0.17.0)",
+    "vulture (>=2.16,<3.0)",
+    "pytest (>=9.0.2,<10.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "diff-cover (>=10.2.0,<11.0.0)",
+    "taplo (>=0.9.3,<0.10.0)",
+    "pytest-xdist (>=3.8.0,<4.0.0)",
+    "yamllint (>=1.37,<2.0)",
+    "tingle (>=0.8.0,<0.9.0)",
+    "pip-audit (>=2.10.1,<3.0.0)",
+    # Not on PyPI; git is its only source. Brings vekna, which casts it.
+    "cabinet @ git+https://github.com/fancysnake/cabinet.git@v3.0.0",
+]
+
+# Only `site:*` and the site workflow install this one — nothing else needs a
+# static-site generator to run the tests, so the group is marked optional
+# below: that is what a plain `poetry install` — the mise enter hook, and CI
+# before it runs anything but `site:*` — leaves out. `--only docs` and
+# `--with docs` are the opt-in.
+docs = ["mkdocs-material (>=9.6,<10.0)"]
+[tool.poetry.group.docs]
+optional = true
+
+# BLACK
+
+[tool.black]
+line-length = 88
+preview = true
+skip-magic-trailing-comma = true
+target-version = ['py311']
+
+# DEPTRY
+
+[tool.deptry]
+known_first_party = ["exemplar"]
+
+# IMPORT LINTER
+
+[tool.importlinter]
+root_package = "exemplar"
+
+[[tool.importlinter.contracts]]
+name = "gates"
+type = "forbidden"
+source_modules = ["exemplar.gates"]
+forbidden_modules = [
+    "exemplar.links",
+    "exemplar.inits",
+    "exemplar.mills",
+    "exemplar.specs",
+    "exemplar.edges",
+]
+
+[[tool.importlinter.contracts]]
+name = "links"
+type = "forbidden"
+source_modules = ["exemplar.links"]
+forbidden_modules = [
+    "exemplar.gates",
+    "exemplar.inits",
+    "exemplar.mills",
+    "exemplar.specs",
+    "exemplar.edges",
+]
+
+[[tool.importlinter.contracts]]
+name = "inits"
+type = "forbidden"
+source_modules = ["exemplar.inits"]
+forbidden_modules = ["exemplar.specs", "exemplar.edges"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "mills"
+type = "forbidden"
+source_modules = ["exemplar.mills"]
+forbidden_modules = [
+    "exemplar.gates",
+    "exemplar.links",
+    "exemplar.inits",
+    "exemplar.edges",
+]
+
+[[tool.importlinter.contracts]]
+name = "pacts"
+type = "forbidden"
+source_modules = ["exemplar.pacts"]
+forbidden_modules = [
+    "exemplar.gates",
+    "exemplar.links",
+    "exemplar.inits",
+    "exemplar.mills",
+    "exemplar.specs",
+    "exemplar.edges",
+]
+
+[[tool.importlinter.contracts]]
+name = "specs"
+type = "forbidden"
+source_modules = ["exemplar.specs"]
+forbidden_modules = [
+    "exemplar.gates",
+    "exemplar.links",
+    "exemplar.inits",
+    "exemplar.mills",
+    "exemplar.edges",
+]
+
+[[tool.importlinter.contracts]]
+name = "edges"
+type = "forbidden"
+source_modules = ["exemplar.edges"]
+forbidden_modules = [
+    "exemplar.gates",
+    "exemplar.links",
+    "exemplar.inits",
+    "exemplar.mills",
+    "exemplar.pacts",
+    "exemplar.specs",
+]
+
+[[tool.importlinter.contracts]]
+name = "inside-gates"
+type = "independence"
+modules = ["exemplar.gates.*"]
+
+# MYPY
+
+[tool.mypy]
+check_untyped_defs = true
+color_output = true
+disallow_any_decorated = true
+disallow_any_explicit = true
+disallow_any_expr = true
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+exclude = []
+explicit_package_bases = true
+extra_checks = true
+implicit_reexport = true
+mypy_path = "src"
+pretty = true
+python_version = "3.11"
+strict = true
+strict_equality = true
+strict_equality_for_none = true
+warn_incomplete_stub = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+# RUFF
+
+[tool.ruff]
+line-length = 88
+output-format = 'concise'
+preview = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812",  # Trailing comma missing
+    "CPY",     # Missing copyright notice at top of file
+    "D1",      # Missing docstring
+    "PLC2701", # Private name import
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = [
+    "ANN",                    # flake8-annotations
+    "S",
+    "pytest-fixture-autouse",
+]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+# VULTURE
+
+[tool.vulture]
+exclude = []
+min_confidence = 61
+
+# PYTEST
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# COVERAGE
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = ["src/exemplar/edges/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "# pragma: no cover"]
+precision = 2
