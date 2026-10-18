@@ -1,3 +1,4 @@
+---
 # The same bar `mise run test:py:cov:diff` holds locally: every line a change
 # touches is covered. The project number may not drop either.
 coverage:

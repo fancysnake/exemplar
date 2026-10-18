@@ -1,3 +1,4 @@
+---
 site_name: exemplar
 site_url: https://exemplar.fancysnake.dev
 site_description: One set of standards across many repositories, checked in each repository's CI.
@@ -50,6 +51,11 @@ markdown_extensions:
   # copying it; base_path is the repo root, where mkdocs runs, and check_paths
   # fails the build when a path or a named section goes missing.
   - pymdownx.snippets: {base_path: ["."], check_paths: true}
+
+# `site:dev` watches only docs/ and this file; the snippet sources sit outside.
+watch:
+  - README.md
+  - CHANGELOG.md
 
 nav:
   - index.md
