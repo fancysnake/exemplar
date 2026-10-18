@@ -6,16 +6,18 @@ on:
   push:
     branches: ["main"]
 
-concurrency:
-  group: site-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # One group per ref: a newer push to main cancels the older build, so a
+    # stale build cannot finish last and deploy over a newer one. Each pull
+    # request has its own refs/pull/N/merge ref, and so its own group.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

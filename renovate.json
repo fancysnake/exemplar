@@ -3,5 +3,27 @@
   "extends": ["config:best-practices", ":preserveSemverRanges"],
   "minimumReleaseAge": "7 days",
   "prCreation": "not-pending",
-  "internalChecksFilter": "strict"
+  "internalChecksFilter": "strict",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "hk.pkl names hk's pkl packages by release",
+      "managerFilePatterns": ["/^hk\\.pkl$/"],
+      "matchStrings": [
+        "releases/download/v(?<currentValue>\\d+\\.\\d+\\.\\d+)/hk@\\d+\\.\\d+\\.\\d+"
+      ],
+      "autoReplaceStringTemplate": "releases/download/v{{{newValue}}}/hk@{{{newValue}}}",
+      "depNameTemplate": "hk",
+      "packageNameTemplate": "jdx/hk",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "hk in mise.toml and hk.pkl move in one PR",
+      "matchDepNames": ["hk"],
+      "groupName": "hk"
+    }
+  ]
 }

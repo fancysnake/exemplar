@@ -940,7 +940,6 @@ license-expression = ">=30,<31"
 packageurl-python = ">=0.11,<2"
 py-serializable = ">=2.1.0,<3.0.0"
 sortedcontainers = ">=2.4.0,<3.0.0"
-typing_extensions = {version = ">=4.6,<5.0", markers = "python_version < \"3.13\""}
 
 [package.extras]
 json-validation = ["jsonschema[format-nongpl] (>=4.25,<5.0)", "referencing (>=0.28.4)"]
@@ -1250,7 +1249,6 @@ httpcore2 = {version = "2.13.1", markers = "sys_platform != \"emscripten\""}
 httpx2-jsfetch = {version = "*", markers = "sys_platform == \"emscripten\" and python_version >= \"3.12\""}
 idna = ">=3.18"
 truststore = {version = ">=0.10", markers = "sys_platform != \"emscripten\""}
-typing-extensions = {version = ">=4.5.0", markers = "python_version < \"3.13\""}
 
 [package.extras]
 brotli = ["brotli (>=1.2.0) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=1.2.0.2) ; platform_python_implementation != \"CPython\""]
@@ -1267,7 +1265,7 @@ description = "httpx2 transports for Emscripten/Pyodide, backed by the JavaScrip
 optional = false
 python-versions = ">=3.12"
 groups = ["dev"]
-markers = "sys_platform == \"emscripten\" and python_version >= \"3.12\""
+markers = "sys_platform == \"emscripten\""
 files = [
     {file = "httpx2_jsfetch-1.0-py3-none-any.whl", hash = "sha256:cb916b707601e69a07721aabc8f3f6659be3a6893bc1ff5c6f9e02241df2da32"},
     {file = "httpx2_jsfetch-1.0.tar.gz", hash = "sha256:70a0e3eabfef7cce5ad9c629f7d01ca05e418f586646f4ddf14782e4c1454c60"},
@@ -1840,10 +1838,7 @@ files = [
 ]
 
 [package.dependencies]
-anyio = [
-    {version = ">=4.9", markers = "python_version < \"3.14\""},
-    {version = ">=4.10", markers = "python_version >= \"3.14\""},
-]
+anyio = {version = ">=4.10", markers = "python_version >= \"3.14\""}
 httpx2 = ">=2.10.0"
 jsonschema = ">=4.20.0"
 mcp-types = "2.3.0"
@@ -1853,10 +1848,7 @@ pyjwt = {version = ">=2.10.1", extras = ["crypto"]}
 python-multipart = ">=0.0.9"
 pywin32 = {version = ">=311", markers = "sys_platform == \"win32\""}
 sse-starlette = ">=3.0.0"
-starlette = [
-    {version = ">=0.27", markers = "python_version < \"3.14\""},
-    {version = ">=0.48.0", markers = "python_version >= \"3.14\""},
-]
+starlette = {version = ">=0.48.0", markers = "python_version >= \"3.14\""}
 typing-extensions = ">=4.13.0"
 typing-inspection = ">=0.4.1"
 uvicorn = {version = ">=0.31.1", markers = "sys_platform != \"emscripten\""}
@@ -2410,7 +2402,7 @@ description = "C parser in Python"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
-markers = "implementation_name != \"PyPy\" and platform_python_implementation != \"PyPy\""
+markers = "platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\""
 files = [
     {file = "pycparser-3.11-py3-none-any.whl", hash = "sha256:51d5a8ba2be0bbe440b99d2112604c95bbbc3c2748a64260186c541e1729cd80"},
     {file = "pycparser-3.11.tar.gz", hash = "sha256:d875f09c3507d00e1aba0eecc6dcadc1352f30fff09dc6bff2f1c2935e97c2bc"},
@@ -2636,10 +2628,7 @@ files = [
 [package.dependencies]
 astroid = ">=4.3.4,<=4.4"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
-dill = [
-    {version = ">=0.3.6", markers = "python_version == \"3.11\""},
-    {version = ">=0.3.7", markers = "python_version >= \"3.12\""},
-]
+dill = {version = ">=0.3.7", markers = "python_version >= \"3.12\""}
 isort = ">=5,!=5.13,<10"
 mccabe = ">=0.6,<0.8"
 platformdirs = ">=2.2"
@@ -2973,7 +2962,6 @@ files = [
 [package.dependencies]
 attrs = ">=22.2.0"
 rpds-py = ">=0.7.0"
-typing-extensions = {version = ">=4.4.0", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "requests"
@@ -3282,7 +3270,6 @@ files = [
 
 [package.dependencies]
 anyio = ">=4.0.0,<5"
-typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""}
 
 [package.extras]
 full = ["httpx (>=0.27.0,<0.29.0)", "httpx2 (>=2.0.0)", "itsdangerous", "jinja2", "opentelemetry-api", "python-multipart (>=0.0.18)", "pyyaml"]
@@ -3638,5 +3625,5 @@ dev = ["doc8", "flake8", "flake8-import-order", "rstcheck[sphinx]", "ruff", "sph
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.11,<3.15"
-content-hash = "e6975559431d7c0fe5abd27008364135fe97ca2f5ea502ac1ef040b2c4fdfd0e"
+python-versions = ">=3.14,<3.15"
+content-hash = "1dc0cdbee846bbe4b78d50d950ade28527e87aba52c18f183559913b09e7da29"

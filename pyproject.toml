@@ -6,7 +6,7 @@ authors = [{ name = "Radosław Ganczarek", email = "radoslaw@ganczarek.in" }]
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.14,<3.15"
 dependencies = ["typer (>=0.27.2,<1.0.0)"]
 
 [project.scripts]
@@ -56,7 +56,7 @@ optional = true
 line-length = 88
 preview = true
 skip-magic-trailing-comma = true
-target-version = ['py311']
+target-version = ['py314']
 
 # DEPTRY
 
@@ -156,35 +156,78 @@ modules = ["exemplar.gates.*"]
 # MYPY
 
 [tool.mypy]
-check_untyped_defs = true
 color_output = true
 disallow_any_decorated = true
 disallow_any_explicit = true
 disallow_any_expr = true
-disallow_any_generics = true
 disallow_any_unimported = true
-disallow_incomplete_defs = true
-disallow_subclassing_any = true
-disallow_untyped_calls = true
-disallow_untyped_decorators = true
-disallow_untyped_defs = true
 exclude = []
 explicit_package_bases = true
-extra_checks = true
-implicit_reexport = true
 mypy_path = "src"
 pretty = true
-python_version = "3.11"
+python_version = "3.14"
 strict = true
-strict_equality = true
 strict_equality_for_none = true
 warn_incomplete_stub = true
-warn_no_return = true
-warn_redundant_casts = true
-warn_return_any = true
 warn_unreachable = true
-warn_unused_configs = true
-warn_unused_ignores = true
+
+# PYLINT
+
+[tool.pylint.main]
+ignore = ["CVS", "migrations"]
+load-plugins = [
+    "pylint.extensions.bad_builtin",
+    "pylint.extensions.check_elif",
+    "pylint.extensions.code_style",
+    "pylint.extensions.comparison_placement",
+    "pylint.extensions.consider_refactoring_into_while_condition",
+    "pylint.extensions.consider_ternary_expression",
+    "pylint.extensions.dict_init_mutate",
+    "pylint.extensions.docparams",
+    "pylint.extensions.docstyle",
+    "pylint.extensions.dunder",
+    "pylint.extensions.empty_comment",
+    "pylint.extensions.eq_without_hash",
+    "pylint.extensions.for_any_all",
+    "pylint.extensions.mccabe",
+    "pylint.extensions.overlapping_exceptions",
+    "pylint.extensions.private_import",
+    "pylint.extensions.redefined_loop_name",
+    "pylint.extensions.redefined_variable_type",
+    "pylint.extensions.set_membership",
+    "pylint.extensions.typing",
+    "pylint.extensions.while_used",
+]
+py-version = "3.14"
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pylint."messages control"]
+disable = [
+    "import-outside-toplevel",
+    "simplify-boolean-expression",
+    "too-many-public-methods",
+    "too-many-branches",
+    "too-many-lines",
+    "too-many-locals",
+    "too-many-ancestors",
+    "too-many-return-statements",
+    "unused-argument",
+    "invalid-str-returned",
+    "line-too-long",
+    "duplicate-code",
+    "protected-access",
+    "too-many-positional-arguments",
+    "too-many-arguments",
+    "too-few-public-methods",
+    "too-many-statements",
+    "no-member",
+    "missing-docstring",
+]
+
+[tool.pylint.reports]
+output-format = "parseable"
 
 # RUFF
 
@@ -236,5 +279,5 @@ omit = ["src/exemplar/edges/*"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-exclude_also = ["if TYPE_CHECKING:", "# pragma: no cover"]
+exclude_also = ["if TYPE_CHECKING:"]
 precision = 2

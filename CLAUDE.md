@@ -14,15 +14,15 @@ push to `main`; README.md is the front door. A new page needs a `nav` entry in
 
 ## Commands
 
-Python 3.11 - 3.14 via mise; never call python tools directly, always `mise run`.
-The local interpreter, mypy and pylint are pinned to the 3.11 floor; CI's test
-matrix covers the rest. Task definitions come from the shared
+Python 3.14 only, via mise; never call python tools directly, always `mise run`.
+exemplar is a standalone app, not a dependency of the repositories it checks,
+so it targets one interpreter. Task definitions come from the shared
 `fancysnake/shared-configs` include in `mise.toml`; `mise tasks info <task>`
 shows what one runs.
 
 ```bash
 mise run fullcheck     # the commit gate: format, lint, deptry, hk, tests + diff coverage
-mise run test:unit     # tests/unit (mills, pure helpers)
+mise run test:unit     # tests/unit (mills, pure helpers); empty until mills land, exits 5
 mise run test:int      # tests/integration (links, gates)
 mise run lint:py       # every linter; lint:mypy, lint:ruff, ... one at a time
 mise run lint:tingle   # advisory: suppression debt vs main; not in fullcheck

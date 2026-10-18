@@ -51,7 +51,7 @@ base = "tingle.builtins.ruff.per_file_ignores"
 base = "tingle.builtins.pylint.disable_comment"
 
 [[metrics]]
-base = "tingle.builtins.pylint.rcfile_disables"
+base = "tingle.builtins.pylint.pyproject_disables"
 name = "pylint-disables"
 
 # testing
@@ -64,7 +64,6 @@ ranges = ["python-tests"]
 base = "tingle.builtins.unittest_mock.any_used"
 name = "mock-ANY"
 ranges = ["python-tests"]
-ignore_lines = ['(?:\b|_)(view|form|import)\b']
 
 [[metrics]]
 base = "tingle.builtins.pytest.skip_marks"
