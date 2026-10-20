@@ -1,0 +1,20 @@
+# Pull request and issue maintenance rituals from the cabinet tome:
+# `vekna cast refresh`, `cover`, `review`, `identify`, `labels`. Only what
+# differs from cabinet's defaults is set, so a cabinet bump is not frozen out
+# by a copied value.
+[rituals]
+modules = ["cabinet.rituals"]
+
+[cabinet]
+# `origin` is https already, so it needs no twin for casts.
+gate = "mise run fullcheck"
+# One suite, seconds long: the full measurement and the fast one are the same.
+coverage = "mise run test:py:cov:diff"
+fast_coverage = "mise run test:py:cov:diff"
+# Casts run unattended; nobody is there to unlock a signing key.
+sign_commits = false
+
+[cabinet.agent]
+# The whole-repository linter sweeps, which the gate runs anyway. One linter
+# over one file, or one test file or case, stays a quick check.
+may_not_run = ["mise run lint:py", "mise run lint:hk"]

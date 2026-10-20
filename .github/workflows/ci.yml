@@ -1,0 +1,61 @@
+---
+name: CI
+
+"on":
+  pull_request:
+  push:
+    branches: ["main"]
+
+concurrency:
+  # The pull request's own number, so two of them sharing a branch name — two
+  # forks both on `main` — cannot cancel each other. A push to a branch has no
+  # pull request in its event, and the run id is unique, so nothing cancels it.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      # The steps below run code the pull request itself supplies, so the
+      # checkout token has no business staying behind in `.git/config`.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          # tingle measures the branch against main, so main has to be there.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834  # v5
+      - run: mise install
+      - run: poetry install
+      # The same task `fullcheck` runs, so the two lists cannot drift.
+      - run: mise run lint
+      # Advisory: reports the branch's debt against main without blocking the
+      # merge, so the number is seen every time and gated on nowhere yet.
+      - run: mise run lint:tingle
+        continue-on-error: true
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          # diff-cover on Codecov's side needs the base to compare against.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834  # v5
+      - run: mise install
+      - run: poetry install
+      - run: mise run test:py:cov
+      - run: mise exec -- coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          disable_search: true
+          # Nothing else gates diff coverage in CI, so a lost upload must fail.
+          fail_ci_if_error: true

@@ -1,0 +1,63 @@
+---
+site_name: exemplar
+site_url: https://exemplar.fancysnake.dev
+site_description: One set of standards across many repositories, checked in each repository's CI.
+repo_url: https://github.com/fancysnake/exemplar
+repo_name: fancysnake/exemplar
+copyright: MIT
+
+# A link to a page that is not there is what rots first when a page is renamed,
+# and it fails `site:dev` as well as `site:build`.
+strict: true
+
+# Under strict a warning is a failure; anchors are how cross-references
+# between pages actually break, and MkDocs only logs them at info.
+validation:
+  anchors: warn
+
+theme:
+  name: material
+  icon:
+    logo: material/clipboard-check-outline
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle: {icon: material/weather-night, name: Switch to dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle: {icon: material/weather-sunny, name: Switch to light mode}
+  features:
+    - content.code.copy
+    - navigation.top
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/fancysnake/exemplar
+    - icon: fontawesome/solid/globe
+      link: https://fancysnake.dev
+      name: fancysnake.dev
+
+markdown_extensions:
+  - toc: {permalink: true}
+  # superfences needs it; no page asks for line numbers.
+  - pymdownx.highlight
+  - pymdownx.superfences
+  # Pages include shared prose from README.md and CHANGELOG.md rather than
+  # copying it; base_path is the repo root, where mkdocs runs, and check_paths
+  # fails the build when a path or a named section goes missing.
+  - pymdownx.snippets: {base_path: ["."], check_paths: true}
+
+# `site:dev` watches only docs/ and this file; the snippet sources sit outside.
+watch:
+  - README.md
+  - CHANGELOG.md
+
+nav:
+  - index.md
+  - architecture.md
+  - changelog.md
