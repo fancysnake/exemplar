@@ -149,10 +149,20 @@ def test_unreadable_entry_fails(tmp_path, monkeypatch, unreadable):
         FilesystemStandardsRepository(tmp_path).read()
 
 
-def deny(entry, method):
+def test_bit_gone_after_listing_fails(tmp_path, monkeypatch):
+    bit = tmp_path / "lint/ruff/ruff.toml"
+    write(bit)
+    monkeypatch.setattr(Path, "read_text", deny(bit, Path.read_text, errno.ENOENT))
+
+    with pytest.raises(StandardsError, match=r"ruff\.toml: missing"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+def deny(entry, method, code=errno.EACCES):
     def denied(path, *args, **kwargs):
         if path == entry:
-            raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), str(path))
+            # OSError builds the subclass the code names: PermissionError, ...
+            raise OSError(code, os.strerror(code), str(path))
         return method(path, *args, **kwargs)
 
     return denied
