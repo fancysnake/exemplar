@@ -1,4 +1,6 @@
-from pathlib import PurePosixPath
+import errno
+import os
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -135,17 +137,25 @@ def test_broken_symlink_in_variant_fails(tmp_path):
     ["lint/ruff/ruff.toml", "lint/category.toml", "lint/ruff"],
     ids=["bit", "category-toml", "directory"],
 )
-def test_unreadable_entry_fails(tmp_path, unreadable):
+def test_unreadable_entry_fails(tmp_path, monkeypatch, unreadable):
     write(tmp_path / "lint/category.toml")
     write(tmp_path / "lint/ruff/ruff.toml")
     entry = tmp_path / unreadable
-    entry.chmod(0)
+    # Root ignores mode bits, so chmod cannot deny access; Path is patched instead.
+    for method in ("read_text", "iterdir"):
+        monkeypatch.setattr(Path, method, deny(entry, getattr(Path, method)))
 
-    try:
-        with pytest.raises(StandardsError, match="Permission denied"):
-            FilesystemStandardsRepository(tmp_path).read()
-    finally:
-        entry.chmod(0o700)
+    with pytest.raises(StandardsError, match="Permission denied"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+def deny(entry, method):
+    def denied(path, *args, **kwargs):
+        if path == entry:
+            raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), str(path))
+        return method(path, *args, **kwargs)
+
+    return denied
 
 
 def test_non_utf8_category_toml_fails(tmp_path):
