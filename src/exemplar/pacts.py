@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import PurePosixPath
 
 
@@ -33,7 +34,6 @@ type Bit = FileBit | FragmentBit
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Variant:
-    name: str
     bits: tuple[Bit, ...]
 
 
@@ -41,16 +41,10 @@ class Variant:
 class Category:
     """A category's variants, and the bits every non-`none` pick shares."""
 
-    name: str
     optional: bool
     shared: tuple[Bit, ...]
-    variants: dict[str, Variant]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Standards:
-    categories: dict[str, Category]
+    variants: Mapping[str, Variant]
 
 
 class StandardsRepositoryProtocol(Protocol):
-    def read(self) -> Standards: ...
+    def read(self) -> Mapping[str, Category]: ...

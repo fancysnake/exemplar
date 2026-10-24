@@ -3,14 +3,7 @@ from pathlib import PurePosixPath
 import pytest
 
 from exemplar.links.standards.filesystem import FilesystemStandardsRepository
-from exemplar.pacts import (
-    Category,
-    FileBit,
-    FragmentBit,
-    Standards,
-    StandardsError,
-    Variant,
-)
+from exemplar.pacts import Category, FileBit, FragmentBit, StandardsError, Variant
 
 
 def write(path, content=""):
@@ -28,54 +21,46 @@ def test_reads_categories_variants_and_bits(tmp_path):
 
     standards = FilesystemStandardsRepository(tmp_path).read()
 
-    assert standards == Standards(
-        categories={
-            "ci": Category(
-                name="ci",
-                optional=False,
-                shared=(),
-                variants={
-                    "github": Variant(
-                        name="github",
-                        bits=(
-                            FileBit(
-                                path=PurePosixPath(".github/workflows/ci.yml"),
-                                content="on: push\n",
-                            ),
-                            FragmentBit(
-                                path=PurePosixPath(".github/workflows/lint.yaml"),
-                                fragment="jobs.yaml",
-                                content="jobs: {}\n",
-                            ),
+    assert standards == {
+        "ci": Category(
+            optional=False,
+            shared=(),
+            variants={
+                "github": Variant(
+                    bits=(
+                        FileBit(
+                            path=PurePosixPath(".github/workflows/ci.yml"),
+                            content="on: push\n",
+                        ),
+                        FragmentBit(
+                            path=PurePosixPath(".github/workflows/lint.yaml"),
+                            fragment="jobs.yaml",
+                            content="jobs: {}\n",
                         ),
                     )
-                },
-            ),
-            "docs": Category(
-                name="docs",
-                optional=True,
-                shared=(
-                    FileBit(path=PurePosixPath("docs/index.md"), content="# Home\n"),
-                ),
-                variants={
-                    "mkdocs-mise": Variant(
-                        name="mkdocs-mise",
-                        bits=(
-                            FragmentBit(
-                                path=PurePosixPath("mise.toml"),
-                                fragment="site.toml",
-                                content="[tasks.site]\n",
-                            ),
-                            FileBit(
-                                path=PurePosixPath("mkdocs.yml"),
-                                content="theme: material\n",
-                            ),
+                )
+            },
+        ),
+        "docs": Category(
+            optional=True,
+            shared=(FileBit(path=PurePosixPath("docs/index.md"), content="# Home\n"),),
+            variants={
+                "mkdocs-mise": Variant(
+                    bits=(
+                        FragmentBit(
+                            path=PurePosixPath("mise.toml"),
+                            fragment="site.toml",
+                            content="[tasks.site]\n",
+                        ),
+                        FileBit(
+                            path=PurePosixPath("mkdocs.yml"),
+                            content="theme: material\n",
                         ),
                     )
-                },
-            ),
-        }
-    )
+                )
+            },
+        ),
+    }
 
 
 def test_category_without_category_toml_is_required(tmp_path):
@@ -83,7 +68,7 @@ def test_category_without_category_toml_is_required(tmp_path):
 
     standards = FilesystemStandardsRepository(tmp_path).read()
 
-    assert standards.categories["lint"].optional is False
+    assert standards["lint"].optional is False
 
 
 def test_category_toml_without_optional_is_required(tmp_path):
@@ -92,7 +77,7 @@ def test_category_toml_without_optional_is_required(tmp_path):
 
     standards = FilesystemStandardsRepository(tmp_path).read()
 
-    assert standards.categories["lint"].optional is False
+    assert standards["lint"].optional is False
 
 
 @pytest.mark.parametrize(
@@ -134,4 +119,85 @@ def test_non_utf8_bit_fails(tmp_path):
     bit.write_bytes(b"\xff")
 
     with pytest.raises(StandardsError, match="not UTF-8"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+def test_broken_symlink_in_variant_fails(tmp_path):
+    write(tmp_path / "lint/ruff/ruff.toml")
+    (tmp_path / "lint/ruff/gone").symlink_to(tmp_path / "nowhere")
+
+    with pytest.raises(StandardsError, match="only files and directories"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+@pytest.mark.parametrize(
+    "unreadable",
+    ["lint/ruff/ruff.toml", "lint/category.toml", "lint/ruff"],
+    ids=["bit", "category-toml", "directory"],
+)
+def test_unreadable_entry_fails(tmp_path, unreadable):
+    write(tmp_path / "lint/category.toml")
+    write(tmp_path / "lint/ruff/ruff.toml")
+    entry = tmp_path / unreadable
+    entry.chmod(0)
+
+    try:
+        with pytest.raises(StandardsError, match="Permission denied"):
+            FilesystemStandardsRepository(tmp_path).read()
+    finally:
+        entry.chmod(0o700)
+
+
+def test_non_utf8_category_toml_fails(tmp_path):
+    write(tmp_path / "lint/ruff/ruff.toml")
+    (tmp_path / "lint/category.toml").write_bytes(b"\xff")
+
+    with pytest.raises(StandardsError, match="not UTF-8"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+def test_category_toml_directory_fails(tmp_path):
+    write(tmp_path / "lint/ruff/ruff.toml")
+    write(tmp_path / "lint/category.toml/optional.toml")
+
+    with pytest.raises(StandardsError, match="not a file"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+def test_none_variant_fails(tmp_path):
+    write(tmp_path / "lint/none/ruff.toml")
+
+    with pytest.raises(StandardsError, match="reserved"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+@pytest.mark.parametrize(
+    "fragment",
+    ["mise.toml/site.json", "ci.yml/jobs.toml", "mise.toml/README"],
+    ids=["json-in-toml", "toml-in-yml", "no-suffix"],
+)
+def test_fragment_of_another_format_fails(tmp_path, fragment):
+    write(tmp_path / "lint/ruff" / fragment)
+
+    with pytest.raises(StandardsError, match="not the format of"):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
+def test_yml_and_yaml_fragments_mix(tmp_path):
+    write(tmp_path / "ci/github/ci.yml/jobs.yaml", "jobs: {}\n")
+
+    standards = FilesystemStandardsRepository(tmp_path).read()
+
+    assert standards["ci"].variants["github"].bits == (
+        FragmentBit(
+            path=PurePosixPath("ci.yml"), fragment="jobs.yaml", content="jobs: {}\n"
+        ),
+    )
+
+
+def test_empty_fragment_directory_fails(tmp_path):
+    write(tmp_path / "lint/ruff/ruff.toml")
+    (tmp_path / "lint/ruff/pyproject.toml").mkdir()
+
+    with pytest.raises(StandardsError, match="at least one fragment"):
         FilesystemStandardsRepository(tmp_path).read()
