@@ -55,7 +55,10 @@ class StandardsRepositoryProtocol(Protocol):
 
 
 class RepoError(Exception):
-    """A file in the checked repository exists but cannot be read as text."""
+    """A file in the checked repository exists but cannot be read as text.
+
+    The message is the reason alone; the caller knows which file it read.
+    """
 
 
 class RepoRepositoryProtocol(Protocol):

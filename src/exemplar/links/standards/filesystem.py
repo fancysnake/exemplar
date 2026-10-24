@@ -150,7 +150,8 @@ def _file_or_directory(entry: Path) -> bool:
 
 def _text(file: Path) -> str:
     # Every file read here was just listed, so only a race leaves it missing.
-    if (text := read_text(file, StandardsError)) is None:
+    text = read_text(file, lambda reason: StandardsError(f"{file}: {reason}"))
+    if text is None:
         msg = f"{file}: missing"
         raise StandardsError(msg)
     return text

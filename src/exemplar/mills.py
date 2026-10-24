@@ -1,5 +1,6 @@
 """Business logic. Depends on pacts and specs only."""
 
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
@@ -31,12 +32,9 @@ class PicksService:
         self._repo = repo
 
     def read(self, standards: Mapping[str, Category]) -> Picks:
-        try:
-            text = self._repo.read(EXEMPLAR_TOML)
-        except RepoError as error:
-            return Picks(picks=(), problems=(str(error),))
-        if text is None:
-            return Picks(picks=(), problems=(f"{EXEMPLAR_TOML}: missing",))
+        text = _read(self._repo, EXEMPLAR_TOML)
+        if isinstance(text, _Unread):
+            return Picks(picks=(), problems=(text.problem,))
         try:
             toml = msgspec.toml.decode(text, type=dict[str, _Value])
         except msgspec.DecodeError as error:
@@ -76,15 +74,27 @@ class FileCheckService:
         )
 
     def _problem(self, path: PurePosixPath, content: str) -> str | None:
-        try:
-            text = self._repo.read(path)
-        except RepoError as error:
-            return str(error)
-        if text is None:
-            return f"`{path}` missing"
+        text = _read(self._repo, path)
+        if isinstance(text, _Unread):
+            return text.problem
         if text != content:
             return f"`{path}` differs from the standard"
         return None
+
+
+@dataclass(frozen=True, slots=True)
+class _Unread:
+    problem: str
+
+
+def _read(repo: RepoRepositoryProtocol, path: PurePosixPath) -> str | _Unread:
+    try:
+        text = repo.read(path)
+    except RepoError as error:
+        return _Unread(f"`{path}` unreadable: {error}")
+    if text is None:
+        return _Unread(f"`{path}` missing")
+    return text
 
 
 def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[str]]:

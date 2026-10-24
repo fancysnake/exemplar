@@ -43,9 +43,9 @@ def test_file_not_matching_fails(text, problem):
 
 
 def test_unreadable_file_fails():
-    error = RepoError("/repo/.github/renovate.json: not UTF-8 text")
-
-    assert check([error]) == ("ci.github: /repo/.github/renovate.json: not UTF-8 text",)
+    assert check([RepoError("not UTF-8 text")]) == (
+        "ci.github: `.github/renovate.json` unreadable: not UTF-8 text",
+    )
 
 
 def test_each_root_is_checked():
