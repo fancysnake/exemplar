@@ -11,7 +11,7 @@ from exemplar.specs import EXEMPLAR_TOML
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
-    from exemplar.pacts import Category
+    from exemplar.pacts import Category, FileBit
 
 _REPO_ROOT = "."
 
@@ -60,6 +60,31 @@ class PicksService:
             picks=tuple(result for result in results if isinstance(result, Pick)),
             problems=tuple(result for result in results if isinstance(result, str)),
         )
+
+
+class FileCheckService:
+    """Checks a whole-file bit: under every root, the file equals the standard."""
+
+    def __init__(self, repo: RepoRepositoryProtocol) -> None:
+        self._repo = repo
+
+    def check(self, pick: Pick, bit: FileBit) -> tuple[str, ...]:
+        return tuple(
+            f"{pick.category}.{pick.variant}: {problem}"
+            for root in pick.roots
+            if (problem := self._problem(root / bit.path, bit.content))
+        )
+
+    def _problem(self, path: PurePosixPath, content: str) -> str | None:
+        try:
+            text = self._repo.read(path)
+        except RepoError as error:
+            return str(error)
+        if text is None:
+            return f"`{path}` missing"
+        if text != content:
+            return f"`{path}` differs from the standard"
+        return None
 
 
 def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[str]]:
