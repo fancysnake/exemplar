@@ -149,7 +149,7 @@ def _file_or_directory(entry: Path) -> bool:
 
 def _text(file: Path) -> str:
     try:
-        return file.read_text(encoding="utf-8")
+        return file.read_text(encoding="utf-8", newline="")
     except OSError as error:
         msg = f"{file}: {error.strerror}"
         raise StandardsError(msg) from error

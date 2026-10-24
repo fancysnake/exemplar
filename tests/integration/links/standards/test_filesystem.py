@@ -201,3 +201,18 @@ def test_empty_fragment_directory_fails(tmp_path):
 
     with pytest.raises(StandardsError, match="at least one fragment"):
         FilesystemStandardsRepository(tmp_path).read()
+
+
+@pytest.mark.parametrize(
+    "content", ["line\r\nline\r\n", "line\rline\r"], ids=["crlf", "cr"]
+)
+def test_bit_keeps_line_endings(tmp_path, content):
+    bit = tmp_path / "lint/ruff/ruff.toml"
+    bit.parent.mkdir(parents=True)
+    bit.write_bytes(content.encode())
+
+    standards = FilesystemStandardsRepository(tmp_path).read()
+
+    assert standards["lint"].variants["ruff"].bits == (
+        FileBit(path=PurePosixPath("ruff.toml"), content=content),
+    )
