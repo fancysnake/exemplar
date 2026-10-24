@@ -31,6 +31,10 @@ class FragmentBit:
 
 type Bit = FileBit | FragmentBit
 
+# What an optional category picks when the repository has nothing for it, so
+# no category may hold a variant of that name.
+NONE = "none"
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Variant:

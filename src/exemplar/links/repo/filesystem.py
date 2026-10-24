@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING
 
+from exemplar.links.files import read_text
 from exemplar.pacts import RepoError, RepoRepositoryProtocol
 
 if TYPE_CHECKING:
@@ -13,15 +14,4 @@ class FilesystemRepoRepository(RepoRepositoryProtocol):
         self._root = root
 
     def read(self, path: PurePosixPath) -> str | None:
-        file = self._root / path
-        try:
-            return file.read_text(encoding="utf-8", newline="")
-        # A parent that is a file means the path does not exist either.
-        except FileNotFoundError, NotADirectoryError:
-            return None
-        except OSError as error:
-            msg = f"{file}: {error.strerror}"
-            raise RepoError(msg) from error
-        except UnicodeDecodeError as error:
-            msg = f"{file}: not UTF-8 text"
-            raise RepoError(msg) from error
+        return read_text(self._root / path, RepoError)

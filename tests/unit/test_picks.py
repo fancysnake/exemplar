@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from exemplar.mills import PicksService
-from exemplar.pacts import Category, Pick, Picks, Variant
+from exemplar.pacts import Category, Pick, Picks, RepoError, Variant
 
 STANDARDS = {
     "docs": Category(
@@ -93,6 +93,15 @@ def test_missing_exemplar_toml_fails():
     assert read(None) == Picks(picks=(), problems=("exemplar.toml: missing",))
 
 
+def test_non_utf8_exemplar_toml_fails():
+    repo = MagicMock()
+    repo.read.side_effect = RepoError("/repo/exemplar.toml: not UTF-8 text")
+
+    picks = PicksService(repo).read(STANDARDS)
+
+    assert picks == Picks(picks=(), problems=("/repo/exemplar.toml: not UTF-8 text",))
+
+
 @pytest.mark.parametrize(
     "text",
     ["docs = \n", "docs = 1\n", "[lang.node]\nroots = 'x'\n", "[lang]\nnode = 'x'\n"],
@@ -132,6 +141,7 @@ def test_every_unpicked_category_fails():
         ('lint = "_shared"', "lint: unknown variant `_shared`"),
         ('lint = "none"', "lint: required, cannot pick `none`"),
         ('docs = ["none", "mkdocs-mise"]', "docs: `none` mixed with other picks"),
+        ("docs = { none = { root = '/srv' } }", "docs: `none` cannot be a table"),
         ("lang = { node = { root = [] } }", "lang.node: no root"),
         (
             "lang = { node = { root = '/srv' } }",

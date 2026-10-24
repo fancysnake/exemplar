@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 
 import msgspec
 
-from exemplar.pacts import Pick, Picks, RepoRepositoryProtocol
-from exemplar.specs import EXEMPLAR_TOML, NONE
+from exemplar.pacts import NONE, Pick, Picks, RepoError, RepoRepositoryProtocol
+from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterator, Mapping
 
     from exemplar.pacts import Category
 
@@ -31,93 +31,90 @@ class PicksService:
         self._repo = repo
 
     def read(self, standards: Mapping[str, Category]) -> Picks:
-        if (text := self._repo.read(EXEMPLAR_TOML)) is None:
+        try:
+            text = self._repo.read(EXEMPLAR_TOML)
+        except RepoError as error:
+            return Picks(picks=(), problems=(str(error),))
+        if text is None:
             return Picks(picks=(), problems=(f"{EXEMPLAR_TOML}: missing",))
         try:
             toml = msgspec.toml.decode(text, type=dict[str, _Value])
         except msgspec.DecodeError as error:
             return Picks(picks=(), problems=(f"{EXEMPLAR_TOML}: {error}",))
-        picks: list[Pick] = []
-        problems: list[str] = []
+        results: list[Pick | str] = []
         picked: set[str] = set()
         for name, value in toml.items():
             if (category := standards.get(name)) is None:
-                problems.append(f"{name}: unknown category")
+                results.append(f"{name}: unknown category")
                 continue
-            if variants := _normalise(value):
-                picked.add(name)
-            _check(name, category, variants, picks, problems)
-        problems.extend(
+            variants, problems = _normalise(name, value)
+            results.extend(problems)
+            if not variants:
+                continue
+            picked.add(name)
+            results.extend(_check(name, category, variants))
+        results.extend(
             f"{name}: not picked" for name in standards if name not in picked
         )
-        return Picks(picks=tuple(picks), problems=tuple(problems))
+        return Picks(
+            picks=tuple(result for result in results if isinstance(result, Pick)),
+            problems=tuple(result for result in results if isinstance(result, str)),
+        )
 
 
-def _normalise(value: _Value) -> list[tuple[str, list[str]]]:
-    match value:
-        case str():
-            return [(value, [_REPO_ROOT])]
-        case list():
-            return [(variant, [_REPO_ROOT]) for variant in value]
-        case _:
-            return [
-                (variant, [table.root] if isinstance(table.root, str) else table.root)
-                for variant, table in value.items()
-            ]
+def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[str]]:
+    variants: dict[str, list[str]] = {}
+    problems: list[str] = []
+    if isinstance(value, dict):
+        # `[docs.none]` defaults to `root = "."`, which cannot be told from an
+        # explicit one, so the table form is refused rather than its roots.
+        if NONE in value:
+            problems.append(f"{name}: `{NONE}` cannot be a table")
+        variants = {variant: _listed(table.root) for variant, table in value.items()}
+        return variants, problems
+    for variant in _listed(value):
+        if variant in variants:
+            problems.append(f"{name}: `{variant}` picked twice")
+        variants[variant] = [_REPO_ROOT]
+    return variants, problems
+
+
+def _listed(value: str | list[str]) -> list[str]:
+    return [value] if isinstance(value, str) else value
 
 
 def _check(
-    name: str,
-    category: Category,
-    variants: list[tuple[str, list[str]]],
-    picks: list[Pick],
-    problems: list[str],
-) -> None:
-    variants = _once(name, variants, problems)
-    if any(variant == NONE for variant, _ in variants):
+    name: str, category: Category, variants: dict[str, list[str]]
+) -> Iterator[Pick | str]:
+    if NONE in variants:
         if len(variants) > 1:
-            problems.append(f"{name}: `{NONE}` mixed with other picks")
+            yield f"{name}: `{NONE}` mixed with other picks"
         elif not category.optional:
-            problems.append(f"{name}: required, cannot pick `{NONE}`")
+            yield f"{name}: required, cannot pick `{NONE}`"
         return
-    for variant, roots in variants:
-        if variant not in category.variants:
-            problems.append(f"{name}: unknown variant `{variant}`")
-            continue
-        if not roots:
-            problems.append(f"{name}.{variant}: no root")
-            continue
-        paths = [PurePosixPath(root) for root in roots]
-        bad = [
-            *(
-                f"{name}.{variant}: root `{root}` is not inside the repository"
-                for root, path in zip(roots, paths, strict=True)
-                if not _inside(path)
-            ),
-            *(
-                f"{name}.{variant}: root `{root}` listed twice"
-                for index, (root, path) in enumerate(zip(roots, paths, strict=True))
-                if path in paths[:index]
-            ),
-        ]
-        if bad:
-            problems.extend(bad)
-            continue
-        picks.append(Pick(category=name, variant=variant, roots=tuple(paths)))
+    for variant, roots in variants.items():
+        if variant in category.variants:
+            yield from _pick(name, variant, roots)
+        else:
+            yield f"{name}: unknown variant `{variant}`"
 
 
-def _once(
-    name: str, variants: list[tuple[str, list[str]]], problems: list[str]
-) -> list[tuple[str, list[str]]]:
-    once: list[tuple[str, list[str]]] = []
-    seen: set[str] = set()
-    for variant, roots in variants:
-        if variant in seen:
-            problems.append(f"{name}: `{variant}` picked twice")
-            continue
-        seen.add(variant)
-        once.append((variant, roots))
-    return once
+def _pick(name: str, variant: str, roots: list[str]) -> Iterator[Pick | str]:
+    if not roots:
+        yield f"{name}.{variant}: no root"
+        return
+    # A list, not a set: the pick keeps the roots in the order written.
+    paths: list[PurePosixPath] = []
+    for root in roots:
+        path = PurePosixPath(root)
+        if not _inside(path):
+            yield f"{name}.{variant}: root `{root}` is not inside the repository"
+        elif path in paths:
+            yield f"{name}.{variant}: root `{root}` listed twice"
+        else:
+            paths.append(path)
+    if len(paths) == len(roots):
+        yield Pick(category=name, variant=variant, roots=tuple(paths))
 
 
 def _inside(root: PurePosixPath) -> bool:
