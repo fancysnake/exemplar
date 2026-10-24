@@ -73,6 +73,7 @@ def _check(
     picks: list[Pick],
     problems: list[str],
 ) -> None:
+    variants = _once(name, variants, problems)
     if any(variant == NONE for variant, _ in variants):
         if len(variants) > 1:
             problems.append(f"{name}: `{NONE}` mixed with other picks")
@@ -86,19 +87,37 @@ def _check(
         if not roots:
             problems.append(f"{name}.{variant}: no root")
             continue
-        if outside := [root for root in roots if not _inside(PurePosixPath(root))]:
-            problems.extend(
+        paths = [PurePosixPath(root) for root in roots]
+        bad = [
+            *(
                 f"{name}.{variant}: root `{root}` is not inside the repository"
-                for root in outside
-            )
+                for root, path in zip(roots, paths, strict=True)
+                if not _inside(path)
+            ),
+            *(
+                f"{name}.{variant}: root `{root}` listed twice"
+                for index, (root, path) in enumerate(zip(roots, paths, strict=True))
+                if path in paths[:index]
+            ),
+        ]
+        if bad:
+            problems.extend(bad)
             continue
-        picks.append(
-            Pick(
-                category=name,
-                variant=variant,
-                roots=tuple(PurePosixPath(root) for root in roots),
-            )
-        )
+        picks.append(Pick(category=name, variant=variant, roots=tuple(paths)))
+
+
+def _once(
+    name: str, variants: list[tuple[str, list[str]]], problems: list[str]
+) -> list[tuple[str, list[str]]]:
+    once: list[tuple[str, list[str]]] = []
+    seen: set[str] = set()
+    for variant, roots in variants:
+        if variant in seen:
+            problems.append(f"{name}: `{variant}` picked twice")
+            continue
+        seen.add(variant)
+        once.append((variant, roots))
+    return once
 
 
 def _inside(root: PurePosixPath) -> bool:

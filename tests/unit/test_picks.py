@@ -141,6 +141,12 @@ def test_every_unpicked_category_fails():
             "lang = { node = { root = ['frontend', 'a/../..'] } }",
             "lang.node: root `a/../..` is not inside the repository",
         ),
+        ('lint = ["ruff", "biome", "ruff"]', "lint: `ruff` picked twice"),
+        ('docs = ["none", "none"]', "docs: `none` picked twice"),
+        (
+            "lang = { node = { root = ['frontend', './frontend'] } }",
+            "lang.node: root `./frontend` listed twice",
+        ),
     ],
 )
 def test_bad_pick_fails(line, problem):
@@ -150,6 +156,13 @@ def test_bad_pick_fails(line, problem):
     picks = read("\n".join([*others, line]))
 
     assert picks.problems == (problem,)
+
+
+def test_repeated_variant_keeps_first_pick():
+    picks = read(ALL_PICKED.replace('lint = "ruff"', 'lint = ["ruff", "ruff"]'))
+
+    assert pick("lint", "ruff") in picks.picks
+    assert len(picks.picks) == len(set(picks.picks))
 
 
 def test_problems_are_all_collected():
