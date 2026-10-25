@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 
 import msgspec
 
+from exemplar.links.files import read_text
 from exemplar.pacts import (
+    NONE,
     Bit,
     Category,
     FileBit,
@@ -19,7 +21,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
 
 _SHARED = "_shared"
-_NONE = "none"
 _CATEGORY_TOML = "category.toml"
 _VARIANT_ROOT = PurePosixPath()
 # A directory named with one of these suffixes is a fragment directory; any
@@ -65,8 +66,8 @@ def _category(directory: Path) -> Category:
             skip=_CATEGORY_TOML,
         )
     }
-    if _NONE in bits:
-        msg = f"{directory / _NONE}: `none` is the reserved pick, not a variant"
+    if NONE in bits:
+        msg = f"{directory / NONE}: `{NONE}` is the reserved pick, not a variant"
         raise StandardsError(msg)
     shared = bits.pop(_SHARED, ())
     return Category(
@@ -148,11 +149,8 @@ def _file_or_directory(entry: Path) -> bool:
 
 
 def _text(file: Path) -> str:
-    try:
-        return file.read_text(encoding="utf-8", newline="")
-    except OSError as error:
-        msg = f"{file}: {error.strerror}"
-        raise StandardsError(msg) from error
-    except UnicodeDecodeError as error:
-        msg = f"{file}: not UTF-8 text"
-        raise StandardsError(msg) from error
+    # Every file read here was just listed, so only a race leaves it missing.
+    if (text := read_text(file, StandardsError)) is None:
+        msg = f"{file}: missing"
+        raise StandardsError(msg)
+    return text

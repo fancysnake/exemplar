@@ -31,6 +31,10 @@ class FragmentBit:
 
 type Bit = FileBit | FragmentBit
 
+# What an optional category picks when the repository has nothing for it, so
+# no category may hold a variant of that name.
+NONE = "none"
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Variant:
@@ -48,3 +52,29 @@ class Category:
 
 class StandardsRepositoryProtocol(Protocol):
     def read(self) -> Mapping[str, Category]: ...
+
+
+class RepoError(Exception):
+    """A file in the checked repository exists but cannot be read as text."""
+
+
+class RepoRepositoryProtocol(Protocol):
+    def read(self, path: PurePosixPath) -> str | None:
+        """Return the file at `path` in the repository, or `None` if missing."""
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Pick:
+    """A variant the repository picked for a category, and where it applies."""
+
+    category: str
+    variant: str
+    roots: tuple[PurePosixPath, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Picks:
+    """The valid picks, and a checklist line for each one that failed."""
+
+    picks: tuple[Pick, ...]
+    problems: tuple[str, ...]
