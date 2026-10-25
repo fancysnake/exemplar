@@ -1,9 +1,9 @@
 amends "package://github.com/jdx/hk/releases/download/v2.4.0/hk@2.4.0#/Config.pkl"
 import "package://github.com/jdx/hk/releases/download/v2.4.0/hk@2.4.0#/Builtins.pkl"
 
-// Shared by the implicit `check`, `fix` and `pre-commit` hooks; pre-commit
-// fixes, stages and stashes unstaged work by default.
-steps {
+// What `mise run lint:py` does not check: the `check` hook, which `lint:hk`
+// runs after `lint:py`, so the full sweep runs each linter once.
+local sweep: Mapping<String, Step> = new {
   // File hygiene
   ["check-added-large-files"] = Builtins.check_added_large_files
   ["check-merge-conflict"] = Builtins.check_merge_conflict
@@ -11,17 +11,38 @@ steps {
   ["end-of-file-fixer"] = Builtins.newlines
   ["trailing-whitespace"] = Builtins.trailing_whitespace
 
-  // Python — the same tools `mise run lint:py` runs, on the staged files only
-  ["black"] = Builtins.black
-  ["ruff"] = Builtins.ruff
+  // `lint:codespell` reads only src and tests; this one also reads the docs
   ["codespell"] {
     glob = List("**/*.py", "**/*.md", "**/*.toml")
     exclude = List("**/*.lock")
     check = "codespell {{files}}"
   }
 
-  // Config / CI
-  ["taplo"] = Builtins.taplo
+  // CI
   ["yamllint"] = Builtins.yamllint
   ["actionlint"] = Builtins.actionlint
+}
+
+local all: Mapping<String, Step> = (sweep) {
+  // The same tools `mise run lint:py` runs, on the staged files only
+  ["black"] = Builtins.black
+  ["ruff"] = Builtins.ruff
+  ["taplo"] = Builtins.taplo
+}
+
+// Top-level `steps` would join every hook, `check` included, so each hook
+// names its own set.
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = all
+  }
+  ["fix"] {
+    fix = true
+    steps = all
+  }
+  ["check"] {
+    steps = sweep
+  }
 }

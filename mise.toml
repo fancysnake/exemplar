@@ -42,10 +42,11 @@ run = [
 description = "Find declared-but-unused and used-but-undeclared dependencies"
 run = "deptry src tests"
 
-# What the pre-commit hook runs on the staged files, run here over all of
-# them. `hk install` (the enter hook) is what puts the git hook in place.
+# hk's `check` hook over all files: the steps `lint:py` does not cover. The
+# pre-commit hook adds the Python ones; `hk install` (the enter hook) puts it
+# in place.
 [tasks."lint:hk"]
-description = "Run every hk linter on all files"
+description = "Run the hk linters lint:py does not cover on all files"
 run = "hk check --all"
 
 # `--only docs --no-root` because mkdocs.yml declares no plugins: nothing here
