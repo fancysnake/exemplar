@@ -11,9 +11,9 @@ local sweep: Mapping<String, Step> = new {
   ["end-of-file-fixer"] = Builtins.newlines
   ["trailing-whitespace"] = Builtins.trailing_whitespace
 
-  // `lint:codespell` reads only src and tests; this one also reads the docs
+  // `lint:codespell` reads the Python; this one reads the docs and config
   ["codespell"] {
-    glob = List("**/*.py", "**/*.md", "**/*.toml")
+    glob = List("**/*.md", "**/*.toml")
     exclude = List("**/*.lock")
     check = "codespell {{files}}"
   }
@@ -28,6 +28,9 @@ local all: Mapping<String, Step> = (sweep) {
   ["black"] = Builtins.black
   ["ruff"] = Builtins.ruff
   ["taplo"] = Builtins.taplo
+  ["codespell"] {
+    glob = List("**/*.py", "**/*.md", "**/*.toml")
+  }
 }
 
 // Top-level `steps` would join every hook, `check` included, so each hook
