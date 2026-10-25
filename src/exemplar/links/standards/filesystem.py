@@ -20,13 +20,15 @@ from exemplar.pacts import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
 
+    from exemplar.pacts import Format
+
 _SHARED = "_shared"
 _CATEGORY_TOML = "category.toml"
 _VARIANT_ROOT = PurePosixPath()
 # A directory named with one of these suffixes is a fragment directory; any
 # other directory (`.github/`) holds whole-file bits. Each suffix maps to its
 # format, and a fragment must share its directory's format.
-_FRAGMENT_FORMATS: Mapping[str, str] = {
+_FRAGMENT_FORMATS: Mapping[str, Format] = {
     ".toml": "toml",
     ".yaml": "yaml",
     ".yml": "yaml",
@@ -116,11 +118,14 @@ def _fragments(directory: Path, path: PurePosixPath) -> Iterator[FragmentBit]:
     if not entries:
         msg = f"{directory}: a fragment directory holds at least one fragment file"
         raise StandardsError(msg)
+    format_ = _FRAGMENT_FORMATS[directory.suffix]
     for entry in entries:
-        if _FRAGMENT_FORMATS.get(entry.suffix) != _FRAGMENT_FORMATS[directory.suffix]:
+        if _FRAGMENT_FORMATS.get(entry.suffix) != format_:
             msg = f"{entry}: not the format of {directory.name}"
             raise StandardsError(msg)
-        yield FragmentBit(path=path, fragment=entry.name, content=_text(entry))
+        yield FragmentBit(
+            path=path, fragment=entry.name, format=format_, content=_text(entry)
+        )
 
 
 def _entries(

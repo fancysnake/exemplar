@@ -1,7 +1,7 @@
 """GLIMPSE pacts: DTOs, protocols, errors. Depends on nothing."""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -10,6 +10,9 @@ if TYPE_CHECKING:
 
 class StandardsError(Exception):
     """The standards tree breaks the layout the engine reads."""
+
+
+type Format = Literal["toml", "yaml", "json"]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -26,6 +29,7 @@ class FragmentBit:
 
     path: PurePosixPath
     fragment: str
+    format: Format
     content: str
 
 
