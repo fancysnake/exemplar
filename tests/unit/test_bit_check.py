@@ -5,7 +5,7 @@ import msgspec
 import pytest
 
 from exemplar.mills import BitCheckService
-from exemplar.pacts import FileBit, FragmentBit, Pick, RepoError, StandardsError
+from exemplar.pacts import FileBit, FragmentBit, Pick, RepoError, decode
 
 BIT = FileBit(path=PurePosixPath(".github/renovate.json"), content="{}\n")
 
@@ -70,7 +70,7 @@ def fragment_bit(format_, data):
         path=PurePosixPath(f"pyproject.{format_}"),
         fragment=f"ruff.{format_}",
         format=format_,
-        content=dump(data, format_),
+        content=decode(dump(data, format_), format_),
     )
 
 
@@ -80,7 +80,7 @@ def check_fragment(format_, target, fragment=None):
 
 
 def unmet(format_, mismatch):
-    return f"ci.github: `pyproject.{format_}` ⊇ `ruff.{format_}`: {mismatch}"
+    return f"ci.github: `pyproject.{format_}` lacks `ruff.{format_}`: {mismatch}"
 
 
 FORMATS = pytest.mark.parametrize("format_", ["toml", "yaml", "json"])
@@ -167,18 +167,38 @@ def test_fragment_is_checked_under_each_root():
     bit = fragment_bit("toml", FRAGMENT)
 
     assert check([dump(FRAGMENT, "toml"), "[tool]\n"], "a", "b", bit=bit) == (
-        "ci.github: `b/pyproject.toml` ⊇ `ruff.toml`: tool.ruff: missing",
+        "ci.github: `b/pyproject.toml` lacks `ruff.toml`: tool.ruff: missing",
     )
 
 
-def test_unparseable_fragment_is_a_standards_error():
+def test_yaml_table_with_int_keys_is_a_table():
     bit = FragmentBit(
-        path=PurePosixPath("pyproject.toml"),
-        fragment="ruff.toml",
-        format="toml",
-        content="[",
+        path=PurePosixPath("codes.yaml"),
+        fragment="ok.yaml",
+        format="yaml",
+        content=decode("codes:\n  200: ok\n", "yaml"),
     )
-    pick = Pick(category="lint", variant="ruff", roots=(PurePosixPath(),))
 
-    with pytest.raises(StandardsError, match=r"^`ruff.toml`: not valid toml: "):
-        BitCheckService(MagicMock()).check(pick, bit)
+    assert not check(["codes:\n  200: ok\n  404: missing\n"], bit=bit)
+
+
+def test_workflow_on_key_is_a_string():
+    bit = FragmentBit(
+        path=PurePosixPath(".github/workflows/ci.yml"),
+        fragment="on.yml",
+        format="yaml",
+        content={"on": "push"},
+    )
+
+    assert not check(["on: push\njobs: {}\n"], bit=bit)
+
+
+def test_only_true_and_false_are_yaml_booleans():
+    bit = FragmentBit(
+        path=PurePosixPath("config.yml"),
+        fragment="flags.yml",
+        format="yaml",
+        content={"strict": True, "color": "yes"},
+    )
+
+    assert not check(["strict: true\ncolor: yes\n"], bit=bit)

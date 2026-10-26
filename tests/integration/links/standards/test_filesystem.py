@@ -38,7 +38,7 @@ def test_reads_categories_variants_and_bits(tmp_path):
                             path=PurePosixPath(".github/workflows/lint.yaml"),
                             fragment="jobs.yaml",
                             format="yaml",
-                            content="jobs: {}\n",
+                            content={"jobs": {}},
                         ),
                     )
                 )
@@ -54,7 +54,7 @@ def test_reads_categories_variants_and_bits(tmp_path):
                             path=PurePosixPath("mise.toml"),
                             fragment="site.toml",
                             format="toml",
-                            content="[tasks.site]\n",
+                            content={"tasks": {"site": {}}},
                         ),
                         FileBit(
                             path=PurePosixPath("mkdocs.yml"),
@@ -205,6 +205,20 @@ def test_fragment_of_another_format_fails(tmp_path, fragment):
         FilesystemStandardsRepository(tmp_path).read()
 
 
+@pytest.mark.parametrize(
+    ("fragment", "content"),
+    [("mise.toml/site.toml", "["), ("ci.yml/jobs.yaml", "- a\n")],
+    ids=["invalid", "not-a-table"],
+)
+def test_unparseable_fragment_fails(tmp_path, fragment, content):
+    write(tmp_path / "lint/ruff" / fragment, content)
+
+    with pytest.raises(
+        StandardsError, match=rf"^{tmp_path}/lint/ruff/{fragment}: not valid "
+    ):
+        FilesystemStandardsRepository(tmp_path).read()
+
+
 def test_yml_and_yaml_fragments_mix(tmp_path):
     write(tmp_path / "ci/github/ci.yml/jobs.yaml", "jobs: {}\n")
 
@@ -215,7 +229,7 @@ def test_yml_and_yaml_fragments_mix(tmp_path):
             path=PurePosixPath("ci.yml"),
             fragment="jobs.yaml",
             format="yaml",
-            content="jobs: {}\n",
+            content={"jobs": {}},
         ),
     )
 

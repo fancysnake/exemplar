@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeIs
 
 import msgspec
 
@@ -14,14 +14,14 @@ from exemplar.pacts import (
     Picks,
     RepoError,
     RepoRepositoryProtocol,
-    StandardsError,
+    decode,
 )
 from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Mapping
+    from collections.abc import Iterator, Mapping
 
-    from exemplar.pacts import Bit, Category, Format
+    from exemplar.pacts import Bit, Category, Parsed, Table
 
 _REPO_ROOT = "."
 
@@ -76,85 +76,50 @@ class BitCheckService:
         self._repo = repo
 
     def check(self, pick: Pick, bit: Bit) -> tuple[str, ...]:
-        compare = _comparison(bit)
         return tuple(
             f"{pick.category}.{pick.variant}: {problem}"
             for root in pick.roots
-            if (problem := self._problem(root / bit.path, compare))
+            if (problem := self._problem(root / bit.path, bit))
         )
 
-    def _problem(
-        self, path: PurePosixPath, compare: Callable[[str], str | None]
-    ) -> str | None:
+    def _problem(self, path: PurePosixPath, bit: Bit) -> str | None:
         text = _read(self._repo, path)
         if isinstance(text, _Unread):
             return text.problem
-        if (mismatch := compare(text)) is None:
-            return None
-        return f"`{path}` {mismatch}"
-
-
-# Parsed TOML, YAML or JSON. msgspec cannot decode into a recursive alias (its
-# type analysis overflows), so values are `object`, narrowed by `_as`.
-type _Parsed = object
-
-
-def _comparison(bit: Bit) -> Callable[[str], str | None]:
-    match bit:
-        case FileBit(content=content):
-            return lambda text: None if text == content else "differs from the standard"
-        case FragmentBit(fragment=name, format=format_, content=content):
-            try:
-                fragment = _decode(content, format_)
-            except msgspec.DecodeError as error:
-                msg = f"`{name}`: not valid {format_}: {error}"
-                raise StandardsError(msg) from error
-            return lambda text: _contains(text, name, format_, fragment)
-
-
-def _contains(
-    text: str, name: str, format_: Format, fragment: dict[str, _Parsed]
-) -> str | None:
-    try:
-        target = _decode(text, format_)
-    except msgspec.DecodeError as error:
-        return f"not valid {format_}: {error}"
-    if (mismatch := _mismatch(fragment, target, "")) is None:
-        return None
-    return f"⊇ `{name}`: {mismatch}"
-
-
-def _decode(text: str, format_: Format) -> dict[str, _Parsed]:
-    match format_:
-        case "toml":
-            return msgspec.toml.decode(text, type=dict[str, _Parsed])
-        case "yaml":
-            return msgspec.yaml.decode(text, type=dict[str, _Parsed])
-        case "json":
-            return msgspec.json.decode(text, type=dict[str, _Parsed])
+        match bit:
+            case FileBit(content=content):
+                if text == content:
+                    return None
+                return f"`{path}` differs from the standard"
+            case FragmentBit(fragment=name, format=format_, content=fragment):
+                try:
+                    target = decode(text, format_)
+                except msgspec.DecodeError as error:
+                    return f"`{path}` not valid {format_}: {error}"
+                if (mismatch := _mismatch(fragment, target, "")) is None:
+                    return None
+                return f"`{path}` lacks `{name}`: {mismatch}"
 
 
 # The first key path where the target does not hold the fragment, or `None`.
 # Tables match key by key, extra keys allowed; every item of a fragment array
 # must match some item of the target array, in any order; scalars must be
 # equal and of one type, so `true` is not `1`.
-def _mismatch(fragment: _Parsed, target: _Parsed, key: str) -> str | None:
-    if (table := _as(fragment, dict[str, _Parsed])) is not None:
-        if (target_table := _as(target, dict[str, _Parsed])) is None:
+def _mismatch(fragment: Parsed, target: Parsed, key: str) -> str | None:
+    if _is_table(fragment):
+        if not _is_table(target):
             return f"{key}: expected a table, got {_show(target)}"
-        return _table_mismatch(table, target_table, key)
-    if (items := _as(fragment, list[_Parsed])) is not None:
-        if (target_items := _as(target, list[_Parsed])) is None:
+        return _table_mismatch(fragment, target, key)
+    if _is_array(fragment):
+        if not _is_array(target):
             return f"{key}: expected an array, got {_show(target)}"
-        return _array_mismatch(items, target_items, key)
+        return _array_mismatch(fragment, target, key)
     if type(fragment) is type(target) and fragment == target:
         return None
     return f"{key}: expected {_show(fragment)}, got {_show(target)}"
 
 
-def _table_mismatch(
-    table: dict[str, _Parsed], target: dict[str, _Parsed], key: str
-) -> str | None:
+def _table_mismatch(table: Table, target: Table, key: str) -> str | None:
     for name, value in table.items():
         at = f"{key}.{name}" if key else name
         if name not in target:
@@ -164,23 +129,24 @@ def _table_mismatch(
     return None
 
 
-def _array_mismatch(
-    items: list[_Parsed], target: list[_Parsed], key: str
-) -> str | None:
+def _array_mismatch(items: list[Parsed], target: list[Parsed], key: str) -> str | None:
     for item in items:
         if all(_mismatch(item, other, key) is not None for other in target):
             return f"{key}: missing {_show(item)}"
     return None
 
 
-def _as[T](value: _Parsed, kind: type[T]) -> T | None:
-    try:
-        return msgspec.convert(value, type=kind)
-    except msgspec.ValidationError:
-        return None
+# YAML allows keys other than strings; the walk only looks them up and prints
+# them, so every dict is a table.
+def _is_table(value: Parsed) -> TypeIs[Table]:
+    return isinstance(value, dict)
 
 
-def _show(value: _Parsed) -> str:
+def _is_array(value: Parsed) -> TypeIs[list[Parsed]]:
+    return isinstance(value, list)
+
+
+def _show(value: Parsed) -> str:
     return msgspec.json.encode(value).decode()
 
 

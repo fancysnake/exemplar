@@ -15,6 +15,7 @@ from exemplar.pacts import (
     StandardsError,
     StandardsRepositoryProtocol,
     Variant,
+    decode,
 )
 
 if TYPE_CHECKING:
@@ -123,8 +124,13 @@ def _fragments(directory: Path, path: PurePosixPath) -> Iterator[FragmentBit]:
         if _FRAGMENT_FORMATS.get(entry.suffix) != format_:
             msg = f"{entry}: not the format of {directory.name}"
             raise StandardsError(msg)
+        try:
+            content = decode(_text(entry), format_)
+        except msgspec.DecodeError as error:
+            msg = f"{entry}: not valid {format_}: {error}"
+            raise StandardsError(msg) from error
         yield FragmentBit(
-            path=path, fragment=entry.name, format=format_, content=_text(entry)
+            path=path, fragment=entry.name, format=format_, content=content
         )
 
 
