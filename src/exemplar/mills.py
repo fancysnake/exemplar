@@ -2,17 +2,26 @@
 
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeIs
 
 import msgspec
 
-from exemplar.pacts import NONE, Pick, Picks, RepoError, RepoRepositoryProtocol
+from exemplar.pacts import (
+    NONE,
+    FileBit,
+    FragmentBit,
+    Pick,
+    Picks,
+    RepoError,
+    RepoRepositoryProtocol,
+    decode,
+)
 from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
-    from exemplar.pacts import Category, FileBit
+    from exemplar.pacts import Bit, Category, Parsed, Table
 
 _REPO_ROOT = "."
 
@@ -60,26 +69,85 @@ class PicksService:
         )
 
 
-class FileCheckService:
-    """Checks a whole-file bit: under every root, the file equals the standard."""
+class BitCheckService:
+    """Checks a bit under every root: the file equals or contains the standard."""
 
     def __init__(self, repo: RepoRepositoryProtocol) -> None:
         self._repo = repo
 
-    def check(self, pick: Pick, bit: FileBit) -> tuple[str, ...]:
+    def check(self, pick: Pick, bit: Bit) -> tuple[str, ...]:
         return tuple(
             f"{pick.category}.{pick.variant}: {problem}"
             for root in pick.roots
-            if (problem := self._problem(root / bit.path, bit.content))
+            if (problem := self._problem(root / bit.path, bit))
         )
 
-    def _problem(self, path: PurePosixPath, content: str) -> str | None:
+    def _problem(self, path: PurePosixPath, bit: Bit) -> str | None:
         text = _read(self._repo, path)
         if isinstance(text, _Unread):
             return text.problem
-        if text != content:
-            return f"`{path}` differs from the standard"
+        match bit:
+            case FileBit(content=content):
+                if text == content:
+                    return None
+                return f"`{path}` differs from the standard"
+            case FragmentBit(fragment=name, format=format_, content=fragment):
+                try:
+                    target = decode(text, format_)
+                except msgspec.DecodeError as error:
+                    return f"`{path}` not valid {format_}: {error}"
+                if (mismatch := _mismatch(fragment, target, "")) is None:
+                    return None
+                return f"`{path}` lacks `{name}`: {mismatch}"
+
+
+# The first key path where the target does not hold the fragment, or `None`.
+# Tables match key by key, extra keys allowed; every item of a fragment array
+# must match some item of the target array, in any order; scalars must be
+# equal and of one type, so `true` is not `1`.
+def _mismatch(fragment: Parsed, target: Parsed, key: str) -> str | None:
+    if _is_table(fragment):
+        if not _is_table(target):
+            return f"{key}: expected a table, got {_show(target)}"
+        return _table_mismatch(fragment, target, key)
+    if _is_array(fragment):
+        if not _is_array(target):
+            return f"{key}: expected an array, got {_show(target)}"
+        return _array_mismatch(fragment, target, key)
+    if type(fragment) is type(target) and fragment == target:
         return None
+    return f"{key}: expected {_show(fragment)}, got {_show(target)}"
+
+
+def _table_mismatch(table: Table, target: Table, key: str) -> str | None:
+    for name, value in table.items():
+        at = f"{key}.{name}" if key else name
+        if name not in target:
+            return f"{at}: missing"
+        if (mismatch := _mismatch(value, target[name], at)) is not None:
+            return mismatch
+    return None
+
+
+def _array_mismatch(items: list[Parsed], target: list[Parsed], key: str) -> str | None:
+    for item in items:
+        if all(_mismatch(item, other, key) is not None for other in target):
+            return f"{key}: missing {_show(item)}"
+    return None
+
+
+# YAML allows keys other than strings; the walk only looks them up and prints
+# them, so every dict is a table.
+def _is_table(value: Parsed) -> TypeIs[Table]:
+    return isinstance(value, dict)
+
+
+def _is_array(value: Parsed) -> TypeIs[list[Parsed]]:
+    return isinstance(value, list)
+
+
+def _show(value: Parsed) -> str:
+    return msgspec.json.encode(value).decode()
 
 
 @dataclass(frozen=True, slots=True)
