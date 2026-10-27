@@ -12,6 +12,13 @@ class StandardsError(Exception):
     """The standards tree breaks the layout the engine reads."""
 
 
+# Parsed TOML, YAML or JSON. msgspec cannot decode into a recursive alias (its
+# type analysis overflows), so values are `object`, narrowed where read. YAML
+# keys may be any scalar, so table keys are `object` too.
+type Parsed = object
+type Table = dict[Parsed, Parsed]
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class FileBit:
     """A file the target must hold with exactly this content."""
@@ -26,7 +33,7 @@ class FragmentBit:
 
     path: PurePosixPath
     fragment: str
-    content: str
+    content: Table
 
 
 type Bit = FileBit | FragmentBit
@@ -55,12 +62,21 @@ class StandardsRepositoryProtocol(Protocol):
 
 
 class RepoError(Exception):
-    """A file in the checked repository exists but cannot be read as text."""
+    """A file in the checked repository exists but cannot be read as asked.
+
+    The message is the reason alone; the caller knows which file it read.
+    """
 
 
 class RepoRepositoryProtocol(Protocol):
     def read(self, path: PurePosixPath) -> str | None:
         """Return the file at `path` in the repository, or `None` if missing."""
+
+    def read_table(self, path: PurePosixPath) -> Table | None:
+        """Return the file at `path` parsed by its suffix, or `None` if missing.
+
+        `RepoError` also when the file is not a table in that format.
+        """
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

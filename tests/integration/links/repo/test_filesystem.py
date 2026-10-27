@@ -2,7 +2,9 @@ import errno
 import os
 from pathlib import Path, PurePosixPath
 
+import msgspec
 import pytest
+import yaml
 
 from exemplar.links.repo.filesystem import FilesystemRepoRepository
 from exemplar.pacts import RepoError
@@ -39,14 +41,14 @@ def test_parent_is_a_file_is_none(tmp_path):
 def test_non_utf8_file_fails(tmp_path):
     (tmp_path / "exemplar.toml").write_bytes(b"\xff")
 
-    with pytest.raises(RepoError, match="not UTF-8"):
+    with pytest.raises(RepoError, match=r"^not UTF-8 text$"):
         FilesystemRepoRepository(tmp_path).read(PurePosixPath("exemplar.toml"))
 
 
 def test_directory_fails(tmp_path):
     (tmp_path / "exemplar.toml").mkdir()
 
-    with pytest.raises(RepoError, match="Is a directory"):
+    with pytest.raises(RepoError, match=r"^Is a directory$"):
         FilesystemRepoRepository(tmp_path).read(PurePosixPath("exemplar.toml"))
 
 
@@ -57,5 +59,62 @@ def test_unreadable_file_fails(tmp_path, monkeypatch):
     # Root ignores mode bits, so chmod cannot deny access; Path is patched instead.
     monkeypatch.setattr(Path, "read_text", denied)
 
-    with pytest.raises(RepoError, match="Permission denied"):
+    with pytest.raises(RepoError, match=r"^Permission denied$"):
         FilesystemRepoRepository(tmp_path).read(PurePosixPath("exemplar.toml"))
+
+
+# One table written in each format, so each reads back the same.
+TABLE = {"tool": {"ruff": {"line-length": 88, "fix": True, "select": ["E", "F"]}}}
+
+
+def dump(data, suffix):
+    match suffix:
+        case "toml" | "json":
+            return getattr(msgspec, suffix).encode(data).decode()
+        case _:
+            return yaml.safe_dump(data)
+
+
+def read_table(root, name, content):
+    (root / name).write_text(content, encoding="utf-8")
+    return FilesystemRepoRepository(root).read_table(PurePosixPath(name))
+
+
+@pytest.mark.parametrize("suffix", ["toml", "yaml", "yml", "json"])
+def test_reads_table_in_its_suffix_format(tmp_path, suffix):
+    table = read_table(tmp_path, f"pyproject.{suffix}", dump(TABLE, suffix))
+
+    assert table == TABLE
+
+
+def test_missing_table_is_none(tmp_path):
+    assert (
+        FilesystemRepoRepository(tmp_path).read_table(PurePosixPath("a.toml")) is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "content", "reason"),
+    [
+        ("pyproject.toml", "[", "not valid toml: "),
+        ("ci.yml", "[", "not valid yaml: "),
+        ("ci.yml", "- a\n", "not valid yaml: "),
+        ("package.json", "[]", "not valid json: "),
+    ],
+    ids=["toml", "yaml", "yaml-not-a-table", "json-not-a-table"],
+)
+def test_unparseable_table_fails(tmp_path, name, content, reason):
+    with pytest.raises(RepoError, match=rf"^{reason}"):
+        read_table(tmp_path, name, content)
+
+
+def test_yaml_reads_only_true_and_false_as_booleans(tmp_path):
+    table = read_table(tmp_path, "ci.yml", "on: push\nstrict: true\ncolor: yes\n")
+
+    assert table == {"on": "push", "strict": True, "color": "yes"}
+
+
+def test_yaml_keeps_non_string_keys_at_every_depth(tmp_path):
+    table = read_table(tmp_path, "codes.yaml", "200: ok\ncodes:\n  404: missing\n")
+
+    assert table == {200: "ok", "codes": {404: "missing"}}

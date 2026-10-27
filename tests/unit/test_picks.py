@@ -90,16 +90,18 @@ def test_none_in_optional_category_picks_nothing():
 
 
 def test_missing_exemplar_toml_fails():
-    assert read(None) == Picks(picks=(), problems=("exemplar.toml: missing",))
+    assert read(None) == Picks(picks=(), problems=("`exemplar.toml` missing",))
 
 
 def test_non_utf8_exemplar_toml_fails():
     repo = MagicMock()
-    repo.read.side_effect = RepoError("/repo/exemplar.toml: not UTF-8 text")
+    repo.read.side_effect = RepoError("not UTF-8 text")
 
     picks = PicksService(repo).read(STANDARDS)
 
-    assert picks == Picks(picks=(), problems=("/repo/exemplar.toml: not UTF-8 text",))
+    assert picks == Picks(
+        picks=(), problems=("`exemplar.toml` unreadable: not UTF-8 text",)
+    )
 
 
 @pytest.mark.parametrize(

@@ -1,17 +1,26 @@
 """Business logic. Depends on pacts and specs only."""
 
+from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeIs
 
 import msgspec
 
-from exemplar.pacts import NONE, Pick, Picks, RepoError, RepoRepositoryProtocol
+from exemplar.pacts import (
+    NONE,
+    FileBit,
+    FragmentBit,
+    Pick,
+    Picks,
+    RepoError,
+    RepoRepositoryProtocol,
+)
 from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
+    from collections.abc import Callable, Iterator, Mapping
 
-    from exemplar.pacts import Category
+    from exemplar.pacts import Bit, Category, Parsed, Table
 
 _REPO_ROOT = "."
 
@@ -31,12 +40,9 @@ class PicksService:
         self._repo = repo
 
     def read(self, standards: Mapping[str, Category]) -> Picks:
-        try:
-            text = self._repo.read(EXEMPLAR_TOML)
-        except RepoError as error:
-            return Picks(picks=(), problems=(str(error),))
-        if text is None:
-            return Picks(picks=(), problems=(f"{EXEMPLAR_TOML}: missing",))
+        text = _read(self._repo.read, EXEMPLAR_TOML)
+        if isinstance(text, _Unread):
+            return Picks(picks=(), problems=(text.problem,))
         try:
             toml = msgspec.toml.decode(text, type=dict[str, _Value])
         except msgspec.DecodeError as error:
@@ -60,6 +66,101 @@ class PicksService:
             picks=tuple(result for result in results if isinstance(result, Pick)),
             problems=tuple(result for result in results if isinstance(result, str)),
         )
+
+
+class BitCheckService:
+    """Checks a bit under every root: the file equals or contains the standard."""
+
+    def __init__(self, repo: RepoRepositoryProtocol) -> None:
+        self._repo = repo
+
+    def check(self, pick: Pick, bit: Bit) -> tuple[str, ...]:
+        return tuple(
+            f"{pick.category}.{pick.variant}: {problem}"
+            for root in pick.roots
+            if (problem := self._problem(root / bit.path, bit))
+        )
+
+    def _problem(self, path: PurePosixPath, bit: Bit) -> str | None:
+        match bit:
+            case FileBit(content=content):
+                text = _read(self._repo.read, path)
+                if isinstance(text, _Unread):
+                    return text.problem
+                if text == content:
+                    return None
+                return f"`{path}` differs from the standard"
+            case FragmentBit(fragment=name, content=fragment):
+                target = _read(self._repo.read_table, path)
+                if isinstance(target, _Unread):
+                    return target.problem
+                if (mismatch := _mismatch(fragment, target, "")) is None:
+                    return None
+                return f"`{path}` lacks `{name}`: {mismatch}"
+
+
+# The first key path where the target does not hold the fragment, or `None`.
+# Tables match key by key, extra keys allowed; every item of a fragment array
+# must match some item of the target array, in any order; scalars must be
+# equal and of one type, so `true` is not `1`.
+def _mismatch(fragment: Parsed, target: Parsed, key: str) -> str | None:
+    if _is_table(fragment):
+        if not _is_table(target):
+            return f"{key}: expected a table, got {_show(target)}"
+        return _table_mismatch(fragment, target, key)
+    if _is_array(fragment):
+        if not _is_array(target):
+            return f"{key}: expected an array, got {_show(target)}"
+        return _array_mismatch(fragment, target, key)
+    if type(fragment) is type(target) and fragment == target:
+        return None
+    return f"{key}: expected {_show(fragment)}, got {_show(target)}"
+
+
+def _table_mismatch(table: Table, target: Table, key: str) -> str | None:
+    for name, value in table.items():
+        at = f"{key}.{name}" if key else f"{name}"
+        if name not in target:
+            return f"{at}: missing"
+        if (mismatch := _mismatch(value, target[name], at)) is not None:
+            return mismatch
+    return None
+
+
+def _array_mismatch(items: list[Parsed], target: list[Parsed], key: str) -> str | None:
+    for item in items:
+        if all(_mismatch(item, other, key) is not None for other in target):
+            return f"{key}: missing {_show(item)}"
+    return None
+
+
+def _is_table(value: Parsed) -> TypeIs[Table]:
+    return isinstance(value, dict)
+
+
+def _is_array(value: Parsed) -> TypeIs[list[Parsed]]:
+    return isinstance(value, list)
+
+
+def _show(value: Parsed) -> str:
+    return msgspec.json.encode(value).decode()
+
+
+@dataclass(frozen=True, slots=True)
+class _Unread:
+    problem: str
+
+
+def _read[T](
+    read: Callable[[PurePosixPath], T | None], path: PurePosixPath
+) -> T | _Unread:
+    try:
+        content = read(path)
+    except RepoError as error:
+        return _Unread(f"`{path}` unreadable: {error}")
+    if content is None:
+        return _Unread(f"`{path}` missing")
+    return content
 
 
 def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[str]]:
