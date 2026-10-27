@@ -1,11 +1,11 @@
 """GLIMPSE pacts: DTOs, protocols, errors. Depends on nothing."""
 
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from pathlib import PurePosixPath
 
 
 class StandardsError(Exception):
@@ -79,6 +79,10 @@ class RepoRepositoryProtocol(Protocol):
         """
 
 
+# Where the repository picks its variants; the checklist names it too.
+EXEMPLAR_TOML = PurePosixPath("exemplar.toml")
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Pick:
     """A variant the repository picked for a category, and where it applies."""
@@ -89,8 +93,44 @@ class Pick:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class Problem:
+    """What is wrong in `exemplar.toml`, and the category or pick it is under."""
+
+    message: str
+    category: str | None = None
+    variant: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Picks:
-    """The valid picks, and a checklist line for each one that failed."""
+    """The valid picks, and a problem for each one that failed."""
 
     picks: tuple[Pick, ...]
-    problems: tuple[str, ...]
+    problems: tuple[Problem, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Result:
+    """One bit checked under one root of a pick; `problem` is `None` on a pass."""
+
+    category: str
+    variant: str
+    root: PurePosixPath
+    bit: Bit
+    problem: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Report:
+    """Every problem with the picks, and every bit checked under them."""
+
+    problems: tuple[Problem, ...]
+    results: tuple[Result, ...]
+
+
+class AuditServiceProtocol(Protocol):
+    def audit(self) -> Report:
+        """Check the repository's picks and every bit they pick.
+
+        `StandardsError` when the standards tree cannot be read.
+        """

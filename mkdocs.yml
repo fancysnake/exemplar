@@ -59,5 +59,6 @@ watch:
 
 nav:
   - index.md
+  - checking.md
   - architecture.md
   - changelog.md

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from exemplar.mills import PicksService
-from exemplar.pacts import Category, Pick, Picks, RepoError, Variant
+from exemplar.pacts import Category, Pick, Picks, Problem, RepoError, Variant
 
 STANDARDS = {
     "docs": Category(
@@ -90,7 +90,7 @@ def test_none_in_optional_category_picks_nothing():
 
 
 def test_missing_exemplar_toml_fails():
-    assert read(None) == Picks(picks=(), problems=("`exemplar.toml` missing",))
+    assert read(None) == Picks(picks=(), problems=(Problem(message="missing"),))
 
 
 def test_non_utf8_exemplar_toml_fails():
@@ -100,7 +100,7 @@ def test_non_utf8_exemplar_toml_fails():
     picks = PicksService(repo).read(STANDARDS)
 
     assert picks == Picks(
-        picks=(), problems=("`exemplar.toml` unreadable: not UTF-8 text",)
+        picks=(), problems=(Problem(message="unreadable: not UTF-8 text"),)
     )
 
 
@@ -114,7 +114,7 @@ def test_malformed_exemplar_toml_fails(text):
 
     assert not picks.picks
     assert len(picks.problems) == 1
-    assert picks.problems[0].startswith("exemplar.toml: ")
+    assert picks.problems[0].category is None
 
 
 @pytest.mark.parametrize(
@@ -123,41 +123,77 @@ def test_malformed_exemplar_toml_fails(text):
 def test_category_not_picked_fails(lint):
     picks = read(f'docs = "none"\nframework = "react"\nlang = "python"\n{lint}\n')
 
-    assert picks.problems == ("lint: not picked",)
+    assert picks.problems == (Problem(category="lint", message="not picked"),)
 
 
 def test_every_unpicked_category_fails():
     assert read("").problems == (
-        "docs: not picked",
-        "framework: not picked",
-        "lang: not picked",
-        "lint: not picked",
+        Problem(category="docs", message="not picked"),
+        Problem(category="framework", message="not picked"),
+        Problem(category="lang", message="not picked"),
+        Problem(category="lint", message="not picked"),
     )
 
 
 @pytest.mark.parametrize(
     ("line", "problem"),
     [
-        ('ci = "github"', "ci: unknown category"),
-        ('lint = ["ruff", "eslint"]', "lint: unknown variant `eslint`"),
-        ('lint = "_shared"', "lint: unknown variant `_shared`"),
-        ('lint = "none"', "lint: required, cannot pick `none`"),
-        ('docs = ["none", "mkdocs-mise"]', "docs: `none` mixed with other picks"),
-        ("docs = { none = { root = '/srv' } }", "docs: `none` cannot be a table"),
-        ("lang = { node = { root = [] } }", "lang.node: no root"),
+        ('ci = "github"', Problem(category="ci", message="unknown category")),
+        (
+            'lint = ["ruff", "eslint"]',
+            Problem(category="lint", message="unknown variant `eslint`"),
+        ),
+        (
+            'lint = "_shared"',
+            Problem(category="lint", message="unknown variant `_shared`"),
+        ),
+        (
+            'lint = "none"',
+            Problem(category="lint", message="required, cannot pick `none`"),
+        ),
+        (
+            'docs = ["none", "mkdocs-mise"]',
+            Problem(category="docs", message="`none` mixed with other picks"),
+        ),
+        (
+            "docs = { none = { root = '/srv' } }",
+            Problem(category="docs", message="`none` cannot be a table"),
+        ),
+        (
+            "lang = { node = { root = [] } }",
+            Problem(category="lang", variant="node", message="no root"),
+        ),
         (
             "lang = { node = { root = '/srv' } }",
-            "lang.node: root `/srv` is not inside the repository",
+            Problem(
+                category="lang",
+                variant="node",
+                message="root `/srv` is not inside the repository",
+            ),
         ),
         (
             "lang = { node = { root = ['frontend', 'a/../..'] } }",
-            "lang.node: root `a/../..` is not inside the repository",
+            Problem(
+                category="lang",
+                variant="node",
+                message="root `a/../..` is not inside the repository",
+            ),
         ),
-        ('lint = ["ruff", "biome", "ruff"]', "lint: `ruff` picked twice"),
-        ('docs = ["none", "none"]', "docs: `none` picked twice"),
+        (
+            'lint = ["ruff", "biome", "ruff"]',
+            Problem(category="lint", message="`ruff` picked twice"),
+        ),
+        (
+            'docs = ["none", "none"]',
+            Problem(category="docs", message="`none` picked twice"),
+        ),
         (
             "lang = { node = { root = ['frontend', './frontend'] } }",
-            "lang.node: root `./frontend` listed twice",
+            Problem(
+                category="lang",
+                variant="node",
+                message="root `./frontend` listed twice",
+            ),
         ),
     ],
 )
@@ -183,10 +219,10 @@ def test_problems_are_all_collected():
     assert picks == Picks(
         picks=(),
         problems=(
-            "docs: unknown variant `nope`",
-            "lint: required, cannot pick `none`",
-            "ci: unknown category",
-            "framework: not picked",
-            "lang: not picked",
+            Problem(category="docs", message="unknown variant `nope`"),
+            Problem(category="lint", message="required, cannot pick `none`"),
+            Problem(category="ci", message="unknown category"),
+            Problem(category="framework", message="not picked"),
+            Problem(category="lang", message="not picked"),
         ),
     )
