@@ -37,7 +37,6 @@ def test_reads_categories_variants_and_bits(tmp_path):
                         FragmentBit(
                             path=PurePosixPath(".github/workflows/lint.yaml"),
                             fragment="jobs.yaml",
-                            format="yaml",
                             content={"jobs": {}},
                         ),
                     )
@@ -53,7 +52,6 @@ def test_reads_categories_variants_and_bits(tmp_path):
                         FragmentBit(
                             path=PurePosixPath("mise.toml"),
                             fragment="site.toml",
-                            format="toml",
                             content={"tasks": {"site": {}}},
                         ),
                         FileBit(
@@ -226,10 +224,7 @@ def test_yml_and_yaml_fragments_mix(tmp_path):
 
     assert standards["ci"].variants["github"].bits == (
         FragmentBit(
-            path=PurePosixPath("ci.yml"),
-            fragment="jobs.yaml",
-            format="yaml",
-            content={"jobs": {}},
+            path=PurePosixPath("ci.yml"), fragment="jobs.yaml", content={"jobs": {}}
         ),
     )
 

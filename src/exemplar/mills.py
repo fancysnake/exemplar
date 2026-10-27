@@ -14,12 +14,11 @@ from exemplar.pacts import (
     Picks,
     RepoError,
     RepoRepositoryProtocol,
-    decode,
 )
 from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
+    from collections.abc import Callable, Iterator, Mapping
 
     from exemplar.pacts import Bit, Category, Parsed, Table
 
@@ -41,7 +40,7 @@ class PicksService:
         self._repo = repo
 
     def read(self, standards: Mapping[str, Category]) -> Picks:
-        text = _read(self._repo, EXEMPLAR_TOML)
+        text = _read(self._repo.read, EXEMPLAR_TOML)
         if isinstance(text, _Unread):
             return Picks(picks=(), problems=(text.problem,))
         try:
@@ -83,19 +82,18 @@ class BitCheckService:
         )
 
     def _problem(self, path: PurePosixPath, bit: Bit) -> str | None:
-        text = _read(self._repo, path)
-        if isinstance(text, _Unread):
-            return text.problem
         match bit:
             case FileBit(content=content):
+                text = _read(self._repo.read, path)
+                if isinstance(text, _Unread):
+                    return text.problem
                 if text == content:
                     return None
                 return f"`{path}` differs from the standard"
-            case FragmentBit(fragment=name, format=format_, content=fragment):
-                try:
-                    target = decode(text, format_)
-                except msgspec.DecodeError as error:
-                    return f"`{path}` not valid {format_}: {error}"
+            case FragmentBit(fragment=name, content=fragment):
+                target = _read(self._repo.read_table, path)
+                if isinstance(target, _Unread):
+                    return target.problem
                 if (mismatch := _mismatch(fragment, target, "")) is None:
                     return None
                 return f"`{path}` lacks `{name}`: {mismatch}"
@@ -121,7 +119,7 @@ def _mismatch(fragment: Parsed, target: Parsed, key: str) -> str | None:
 
 def _table_mismatch(table: Table, target: Table, key: str) -> str | None:
     for name, value in table.items():
-        at = f"{key}.{name}" if key else name
+        at = f"{key}.{name}" if key else f"{name}"
         if name not in target:
             return f"{at}: missing"
         if (mismatch := _mismatch(value, target[name], at)) is not None:
@@ -136,8 +134,6 @@ def _array_mismatch(items: list[Parsed], target: list[Parsed], key: str) -> str 
     return None
 
 
-# YAML allows keys other than strings; the walk only looks them up and prints
-# them, so every dict is a table.
 def _is_table(value: Parsed) -> TypeIs[Table]:
     return isinstance(value, dict)
 
@@ -155,14 +151,16 @@ class _Unread:
     problem: str
 
 
-def _read(repo: RepoRepositoryProtocol, path: PurePosixPath) -> str | _Unread:
+def _read[T](
+    read: Callable[[PurePosixPath], T | None], path: PurePosixPath
+) -> T | _Unread:
     try:
-        text = repo.read(path)
+        content = read(path)
     except RepoError as error:
         return _Unread(f"`{path}` unreadable: {error}")
-    if text is None:
+    if content is None:
         return _Unread(f"`{path}` missing")
-    return text
+    return content
 
 
 def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[str]]:

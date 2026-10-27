@@ -1,25 +1,25 @@
 from pathlib import PurePosixPath
 from unittest.mock import MagicMock, call
 
-import msgspec
 import pytest
 
 from exemplar.mills import BitCheckService
-from exemplar.pacts import FileBit, FragmentBit, Pick, RepoError, decode
+from exemplar.pacts import FileBit, FragmentBit, Pick, RepoError
 
 BIT = FileBit(path=PurePosixPath(".github/renovate.json"), content="{}\n")
 
 
-def check(texts, *roots, bit=BIT):
+def check(contents, *roots, bit=BIT):
     repo = MagicMock()
-    repo.read.side_effect = texts
+    read = repo.read if isinstance(bit, FileBit) else repo.read_table
+    read.side_effect = contents
     pick = Pick(
         category="ci",
         variant="github",
         roots=tuple(PurePosixPath(root) for root in roots or (".",)),
     )
     problems = BitCheckService(repo).check(pick, bit)
-    assert repo.read.call_args_list == [
+    assert read.call_args_list == [
         call(PurePosixPath(root) / bit.path) for root in roots or (".",)
     ]
     return problems
@@ -56,49 +56,33 @@ def test_each_root_is_checked():
     )
 
 
-# One fragment written in each format, and targets for it as data, so each
-# case runs against TOML, YAML and JSON alike.
 FRAGMENT = {"tool": {"ruff": {"line-length": 88, "select": ["E", "F"]}}}
 
 
-def dump(data, format_):
-    return getattr(msgspec, format_).encode(data).decode()
-
-
-def fragment_bit(format_, data):
-    return FragmentBit(
-        path=PurePosixPath(f"pyproject.{format_}"),
-        fragment=f"ruff.{format_}",
-        format=format_,
-        content=decode(dump(data, format_), format_),
+def check_fragment(target, fragment=None):
+    bit = FragmentBit(
+        path=PurePosixPath("pyproject.toml"),
+        fragment="ruff.toml",
+        content=fragment or FRAGMENT,
     )
+    return check([target], bit=bit)
 
 
-def check_fragment(format_, target, fragment=None):
-    text = target if isinstance(target, str | None) else dump(target, format_)
-    return check([text], bit=fragment_bit(format_, fragment or FRAGMENT))
+def unmet(mismatch):
+    return f"ci.github: `pyproject.toml` lacks `ruff.toml`: {mismatch}"
 
 
-def unmet(format_, mismatch):
-    return f"ci.github: `pyproject.{format_}` lacks `ruff.{format_}`: {mismatch}"
+def test_equal_fragment_passes():
+    assert not check_fragment(FRAGMENT)
 
 
-FORMATS = pytest.mark.parametrize("format_", ["toml", "yaml", "json"])
-
-
-@FORMATS
-def test_equal_fragment_passes(format_):
-    assert not check_fragment(format_, FRAGMENT)
-
-
-@FORMATS
-def test_extra_keys_and_items_pass(format_):
+def test_extra_keys_and_items_pass():
     target = {
         "project": {"name": "x"},
         "tool": {"ruff": {"line-length": 88, "select": ["I", "F", "E"], "fix": True}},
     }
 
-    assert not check_fragment(format_, target)
+    assert not check_fragment(target)
 
 
 @pytest.mark.parametrize(
@@ -127,78 +111,49 @@ def test_extra_keys_and_items_pass(format_):
         "not-an-array",
     ],
 )
-@FORMATS
-def test_first_mismatch_fails(format_, ruff, mismatch):
-    assert check_fragment(format_, {"tool": {"ruff": ruff}}) == (
-        unmet(format_, mismatch),
+def test_first_mismatch_fails(ruff, mismatch):
+    assert check_fragment({"tool": {"ruff": ruff}}) == (unmet(mismatch),)
+
+
+def test_table_replaced_by_value_fails():
+    assert check_fragment({"tool": {"ruff": 1}}) == (
+        unmet("tool.ruff: expected a table, got 1"),
     )
 
 
-@FORMATS
-def test_table_replaced_by_value_fails(format_):
-    assert check_fragment(format_, {"tool": {"ruff": 1}}) == (
-        unmet(format_, "tool.ruff: expected a table, got 1"),
-    )
-
-
-@FORMATS
-def test_array_items_match_as_fragments(format_):
+def test_array_items_match_as_fragments():
     fragment = {"repos": [{"repo": "ruff", "hooks": ["check"]}]}
     target = {"repos": [{"repo": "black"}, {"repo": "ruff", "hooks": ["fmt", "check"]}]}
 
-    assert not check_fragment(format_, target, fragment)
+    assert not check_fragment(target, fragment)
 
 
-@FORMATS
-def test_unparseable_target_fails(format_):
-    (problem,) = check_fragment(format_, "[")
+def test_non_string_keys_match_at_every_depth():
+    fragment = {200: "ok", "codes": {404: "missing"}}
+    target = {200: "ok", "codes": {404: "missing", 500: "error"}}
 
-    assert problem.startswith(f"ci.github: `pyproject.{format_}` not valid {format_}: ")
-
-
-@FORMATS
-def test_missing_target_fails(format_):
-    assert check_fragment(format_, None) == (
-        f"ci.github: `pyproject.{format_}` missing",
+    assert not check_fragment(target, fragment)
+    assert check_fragment({"codes": {}}, fragment) == (unmet("200: missing"),)
+    assert check_fragment({200: "ok", "codes": {}}, fragment) == (
+        unmet("codes.404: missing"),
     )
+
+
+def test_unreadable_target_fails():
+    assert check_fragment(RepoError("not valid toml: bad")) == (
+        "ci.github: `pyproject.toml` unreadable: not valid toml: bad",
+    )
+
+
+def test_missing_target_fails():
+    assert check_fragment(None) == ("ci.github: `pyproject.toml` missing",)
 
 
 def test_fragment_is_checked_under_each_root():
-    bit = fragment_bit("toml", FRAGMENT)
+    bit = FragmentBit(
+        path=PurePosixPath("pyproject.toml"), fragment="ruff.toml", content=FRAGMENT
+    )
 
-    assert check([dump(FRAGMENT, "toml"), "[tool]\n"], "a", "b", bit=bit) == (
+    assert check([FRAGMENT, {"tool": {}}], "a", "b", bit=bit) == (
         "ci.github: `b/pyproject.toml` lacks `ruff.toml`: tool.ruff: missing",
     )
-
-
-def test_yaml_table_with_int_keys_is_a_table():
-    bit = FragmentBit(
-        path=PurePosixPath("codes.yaml"),
-        fragment="ok.yaml",
-        format="yaml",
-        content=decode("codes:\n  200: ok\n", "yaml"),
-    )
-
-    assert not check(["codes:\n  200: ok\n  404: missing\n"], bit=bit)
-
-
-def test_workflow_on_key_is_a_string():
-    bit = FragmentBit(
-        path=PurePosixPath(".github/workflows/ci.yml"),
-        fragment="on.yml",
-        format="yaml",
-        content={"on": "push"},
-    )
-
-    assert not check(["on: push\njobs: {}\n"], bit=bit)
-
-
-def test_only_true_and_false_are_yaml_booleans():
-    bit = FragmentBit(
-        path=PurePosixPath("config.yml"),
-        fragment="flags.yml",
-        format="yaml",
-        content={"strict": True, "color": "yes"},
-    )
-
-    assert not check(["strict: true\ncolor: yes\n"], bit=bit)

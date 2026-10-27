@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import msgspec
 
 from exemplar.links.files import read_text
+from exemplar.links.formats import FORMATS, decode
 from exemplar.pacts import (
     NONE,
     Bit,
@@ -15,26 +16,14 @@ from exemplar.pacts import (
     StandardsError,
     StandardsRepositoryProtocol,
     Variant,
-    decode,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
 
-    from exemplar.pacts import Format
-
 _SHARED = "_shared"
 _CATEGORY_TOML = "category.toml"
 _VARIANT_ROOT = PurePosixPath()
-# A directory named with one of these suffixes is a fragment directory; any
-# other directory (`.github/`) holds whole-file bits. Each suffix maps to its
-# format, and a fragment must share its directory's format.
-_FRAGMENT_FORMATS: Mapping[str, Format] = {
-    ".toml": "toml",
-    ".yaml": "yaml",
-    ".yml": "yaml",
-    ".json": "json",
-}
 
 
 class _CategoryToml(msgspec.Struct, forbid_unknown_fields=True, frozen=True):
@@ -102,7 +91,9 @@ def _bits(directory: Path, prefix: PurePosixPath = _VARIANT_ROOT) -> Iterator[Bi
         path = prefix / entry.name
         if entry.is_file():
             yield FileBit(path=path, content=_text(entry))
-        elif entry.suffix in _FRAGMENT_FORMATS:
+        # A directory named with a format's suffix holds fragments, each of its
+        # own format; any other directory (`.github/`) holds whole-file bits.
+        elif entry.suffix in FORMATS:
             yield from _fragments(entry, path)
         else:
             yield from _bits(entry, path)
@@ -119,9 +110,9 @@ def _fragments(directory: Path, path: PurePosixPath) -> Iterator[FragmentBit]:
     if not entries:
         msg = f"{directory}: a fragment directory holds at least one fragment file"
         raise StandardsError(msg)
-    format_ = _FRAGMENT_FORMATS[directory.suffix]
+    format_ = FORMATS[directory.suffix]
     for entry in entries:
-        if _FRAGMENT_FORMATS.get(entry.suffix) != format_:
+        if FORMATS.get(entry.suffix) != format_:
             msg = f"{entry}: not the format of {directory.name}"
             raise StandardsError(msg)
         try:
@@ -129,9 +120,7 @@ def _fragments(directory: Path, path: PurePosixPath) -> Iterator[FragmentBit]:
         except msgspec.DecodeError as error:
             msg = f"{entry}: not valid {format_}: {error}"
             raise StandardsError(msg) from error
-        yield FragmentBit(
-            path=path, fragment=entry.name, format=format_, content=content
-        )
+        yield FragmentBit(path=path, fragment=entry.name, content=content)
 
 
 def _entries(
