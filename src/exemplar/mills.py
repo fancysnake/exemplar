@@ -7,20 +7,22 @@ from typing import TYPE_CHECKING, TypeIs
 import msgspec
 
 from exemplar.pacts import (
-    EXEMPLAR_TOML,
     NONE,
     AuditServiceProtocol,
     FileBit,
     FragmentBit,
     Pick,
     Picks,
+    PicksSection,
     Problem,
     RepoError,
     RepoRepositoryProtocol,
     Report,
     Result,
+    Section,
     StandardsRepositoryProtocol,
 )
+from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
@@ -47,16 +49,16 @@ class PicksService:
     def read(self, standards: Mapping[str, Category]) -> Picks:
         text = _read(self._repo.read, EXEMPLAR_TOML)
         if isinstance(text, _Unread):
-            return Picks(picks=(), problems=(Problem(message=text.problem),))
+            return Picks(picks=(), problems=(Problem(where="", message=text.problem),))
         try:
             toml = msgspec.toml.decode(text, type=dict[str, _Value])
         except msgspec.DecodeError as error:
-            return Picks(picks=(), problems=(Problem(message=str(error)),))
+            return Picks(picks=(), problems=(Problem(where="", message=str(error)),))
         results: list[Pick | Problem] = []
         picked: set[str] = set()
         for name, value in toml.items():
             if (category := standards.get(name)) is None:
-                results.append(Problem(category=name, message="unknown category"))
+                results.append(Problem(where=name, message="unknown category"))
                 continue
             variants, problems = _normalise(name, value)
             results.extend(problems)
@@ -65,7 +67,7 @@ class PicksService:
             picked.add(name)
             results.extend(_check(name, category, variants))
         results.extend(
-            Problem(category=name, message="not picked")
+            Problem(where=name, message="not picked")
             for name in standards
             if name not in picked
         )
@@ -76,24 +78,13 @@ class PicksService:
 
 
 class BitCheckService:
-    """Checks a bit under every root: the file equals or contains the standard."""
+    """Checks a bit under a root: the file equals or contains the standard."""
 
     def __init__(self, repo: RepoRepositoryProtocol) -> None:
         self._repo = repo
 
-    def check(self, pick: Pick, bit: Bit) -> tuple[Result, ...]:
-        return tuple(
-            Result(
-                category=pick.category,
-                variant=pick.variant,
-                root=root,
-                bit=bit,
-                problem=self._problem(root / bit.path, bit),
-            )
-            for root in pick.roots
-        )
-
-    def _problem(self, path: PurePosixPath, bit: Bit) -> str | None:
+    def check(self, root: PurePosixPath, bit: Bit) -> str | None:
+        path = root / bit.path
         match bit:
             case FileBit(content=content):
                 text = _read(self._repo.read, path)
@@ -124,12 +115,19 @@ class AuditService(AuditServiceProtocol):
         standards = self._standards.read()
         picks = self._picks.read(standards)
         return Report(
-            problems=picks.problems,
-            results=tuple(
-                result
+            picks=PicksSection(path=EXEMPLAR_TOML, problems=picks.problems),
+            sections=tuple(
+                Section(
+                    category=pick.category,
+                    variant=pick.variant,
+                    root=root,
+                    results=tuple(
+                        Result(bit=bit, problem=self._bits.check(root, bit))
+                        for bit in _bits(standards[pick.category], pick.variant)
+                    ),
+                )
                 for pick in picks.picks
-                for bit in _bits(standards[pick.category], pick.variant)
-                for result in self._bits.check(pick, bit)
+                for root in pick.roots
             ),
         )
 
@@ -209,14 +207,12 @@ def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[Pro
         # `[docs.none]` defaults to `root = "."`, which cannot be told from an
         # explicit one, so the table form is refused rather than its roots.
         if NONE in value:
-            problems.append(
-                Problem(category=name, message=f"`{NONE}` cannot be a table")
-            )
+            problems.append(Problem(where=name, message=f"`{NONE}` cannot be a table"))
         variants = {variant: _listed(table.root) for variant, table in value.items()}
         return variants, problems
     for variant in _listed(value):
         if variant in variants:
-            problems.append(Problem(category=name, message=f"`{variant}` picked twice"))
+            problems.append(Problem(where=name, message=f"`{variant}` picked twice"))
         variants[variant] = [_REPO_ROOT]
     return variants, problems
 
@@ -230,20 +226,21 @@ def _check(
 ) -> Iterator[Pick | Problem]:
     if NONE in variants:
         if len(variants) > 1:
-            yield Problem(category=name, message=f"`{NONE}` mixed with other picks")
+            yield Problem(where=name, message=f"`{NONE}` mixed with other picks")
         elif not category.optional:
-            yield Problem(category=name, message=f"required, cannot pick `{NONE}`")
+            yield Problem(where=name, message=f"required, cannot pick `{NONE}`")
         return
     for variant, roots in variants.items():
         if variant in category.variants:
             yield from _pick(name, variant, roots)
         else:
-            yield Problem(category=name, message=f"unknown variant `{variant}`")
+            yield Problem(where=name, message=f"unknown variant `{variant}`")
 
 
 def _pick(name: str, variant: str, roots: list[str]) -> Iterator[Pick | Problem]:
+    where = f"{name}.{variant}"
     if not roots:
-        yield Problem(category=name, variant=variant, message="no root")
+        yield Problem(where=where, message="no root")
         return
     # A list, not a set: the pick keeps the roots in the order written.
     paths: list[PurePosixPath] = []
@@ -251,14 +248,10 @@ def _pick(name: str, variant: str, roots: list[str]) -> Iterator[Pick | Problem]
         path = PurePosixPath(root)
         if not _inside(path):
             yield Problem(
-                category=name,
-                variant=variant,
-                message=f"root `{root}` is not inside the repository",
+                where=where, message=f"root `{root}` is not inside the repository"
             )
         elif path in paths:
-            yield Problem(
-                category=name, variant=variant, message=f"root `{root}` listed twice"
-            )
+            yield Problem(where=where, message=f"root `{root}` listed twice")
         else:
             paths.append(path)
     if len(paths) == len(roots):

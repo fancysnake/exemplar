@@ -4,38 +4,25 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from exemplar.mills import BitCheckService
-from exemplar.pacts import FileBit, FragmentBit, Pick, RepoError, Result
+from exemplar.pacts import FileBit, FragmentBit, RepoError
 
 BIT = FileBit(path=PurePosixPath(".github/renovate.json"), content="{}\n")
 
 
-def results(contents, *roots, bit=BIT):
+# The problem under each root; `None` where the bit passed.
+def check(contents, *roots, bit=BIT):
     repo = MagicMock()
     read = repo.read if isinstance(bit, FileBit) else repo.read_table
     read.side_effect = contents
-    pick = Pick(
-        category="ci",
-        variant="github",
-        roots=tuple(PurePosixPath(root) for root in roots or (".",)),
-    )
-    checked = BitCheckService(repo).check(pick, bit)
-    assert read.call_args_list == [
-        call(PurePosixPath(root) / bit.path) for root in roots or (".",)
-    ]
-    return checked
-
-
-# The problem under each root; `None` where the bit passed.
-def check(contents, *roots, bit=BIT):
-    return tuple(result.problem for result in results(contents, *roots, bit=bit))
+    paths = tuple(PurePosixPath(root) for root in roots or (".",))
+    service = BitCheckService(repo)
+    problems = tuple(service.check(path, bit) for path in paths)
+    assert read.call_args_list == [call(path / bit.path) for path in paths]
+    return problems
 
 
 def test_identical_file_passes():
-    assert results(["{}\n"]) == (
-        Result(
-            category="ci", variant="github", root=PurePosixPath(), bit=BIT, problem=None
-        ),
-    )
+    assert check(["{}\n"]) == (None,)
 
 
 @pytest.mark.parametrize(
@@ -56,14 +43,12 @@ def test_unreadable_file_fails():
     assert check([RepoError("not UTF-8 text")]) == ("unreadable: not UTF-8 text",)
 
 
-def test_each_root_is_checked():
-    checked = results([None, "{}\n", "{ }\n"], "frontend", "admin", "api")
-
-    assert [(result.root, result.problem) for result in checked] == [
-        (PurePosixPath("frontend"), "missing"),
-        (PurePosixPath("admin"), None),
-        (PurePosixPath("api"), "differs from the standard"),
-    ]
+def test_bit_is_read_under_its_root():
+    assert check([None, "{}\n", "{ }\n"], "frontend", "admin", "api") == (
+        "missing",
+        None,
+        "differs from the standard",
+    )
 
 
 FRAGMENT = {"tool": {"ruff": {"line-length": 88, "select": ["E", "F"]}}}

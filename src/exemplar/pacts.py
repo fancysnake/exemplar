@@ -1,11 +1,11 @@
 """GLIMPSE pacts: DTOs, protocols, errors. Depends on nothing."""
 
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from pathlib import PurePosixPath
 
 
 class StandardsError(Exception):
@@ -79,10 +79,6 @@ class RepoRepositoryProtocol(Protocol):
         """
 
 
-# Where the repository picks its variants; the checklist names it too.
-EXEMPLAR_TOML = PurePosixPath("exemplar.toml")
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Pick:
     """A variant the repository picked for a category, and where it applies."""
@@ -94,11 +90,13 @@ class Pick:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Problem:
-    """What is wrong in `exemplar.toml`, and the category or pick it is under."""
+    """What is wrong in the picks, at `category` or `category.variant`.
 
+    `where` is empty when the problem is the whole file.
+    """
+
+    where: str
     message: str
-    category: str | None = None
-    variant: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -111,21 +109,45 @@ class Picks:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Result:
-    """One bit checked under one root of a pick; `problem` is `None` on a pass."""
+    """One bit checked; `problem` is `None` on a pass."""
 
-    category: str
-    variant: str
-    root: PurePosixPath
     bit: Bit
     problem: str | None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Report:
-    """Every problem with the picks, and every bit checked under them."""
+class PicksSection:
+    """The file holding the picks, and every problem with them."""
 
+    path: PurePosixPath
     problems: tuple[Problem, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Section:
+    """Every bit of one pick checked under one of its roots."""
+
+    category: str
+    variant: str
+    root: PurePosixPath
     results: tuple[Result, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Report:
+    """The checklist: the picks first, then a section per pick and root."""
+
+    picks: PicksSection
+    sections: tuple[Section, ...]
+
+    @property
+    def open(self) -> bool:
+        """Whether any item is left to fix."""
+        return bool(self.picks.problems) or any(
+            result.problem is not None
+            for section in self.sections
+            for result in section.results
+        )
 
 
 class AuditServiceProtocol(Protocol):

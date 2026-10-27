@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, Annotated
 
 import typer
 
-from exemplar.pacts import EXEMPLAR_TOML, FileBit, FragmentBit, StandardsError
+from exemplar.pacts import FileBit, FragmentBit, StandardsError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from exemplar.pacts import AuditServiceProtocol, Problem, Report, Result
+    from exemplar.pacts import AuditServiceProtocol, Problem, Report, Result, Section
 
 # Builds the audit of the repository at the first path against the standards
 # tree at the second.
@@ -63,9 +63,7 @@ def _add_check(app: typer.Typer, audit: Audit) -> None:
         except StandardsError as error:
             raise typer.BadParameter(str(error), param_hint="'--standards'") from error
         typer.echo(_render(report))
-        if report.problems or any(
-            result.problem is not None for result in report.results
-        ):
+        if report.open:
             raise typer.Exit(1)
 
     # Called, not used as a decorator: mypy sees a decorator's `Any` bound.
@@ -76,15 +74,17 @@ def _add_check(app: typer.Typer, audit: Audit) -> None:
 
 def _render(report: Report) -> str:
     sections: list[str] = []
-    if report.problems:
+    if report.picks.problems:
         sections.append(
-            _section(f"{EXEMPLAR_TOML}", [_problem(item) for item in report.problems])
+            _section(
+                f"{report.picks.path}",
+                [_problem(item) for item in report.picks.problems],
+            )
         )
-    groups: dict[tuple[str, str, PurePosixPath], list[str]] = {}
-    for result in report.results:
-        key = (result.category, result.variant, result.root)
-        groups.setdefault(key, []).append(_result(result))
-    sections.extend(_section(_heading(*key), lines) for key, lines in groups.items())
+    sections.extend(
+        _section(_heading(section), [_result(result) for result in section.results])
+        for section in report.sections
+    )
     return "\n\n".join(sections)
 
 
@@ -92,20 +92,15 @@ def _section(heading: str, lines: list[str]) -> str:
     return "\n".join([f"### {heading}", "", *lines])
 
 
-def _heading(category: str, variant: str, root: PurePosixPath) -> str:
-    heading = f"{category}: {variant}"
-    return heading if root == PurePosixPath() else f"{heading} ({root})"
+def _heading(section: Section) -> str:
+    heading = f"{section.category}: {section.variant}"
+    return heading if section.root == PurePosixPath() else f"{heading} ({section.root})"
 
 
 def _problem(problem: Problem) -> str:
-    location = ".".join(
-        part for part in (problem.category, problem.variant) if part is not None
-    )
-    return (
-        f"- [ ] {location}: {problem.message}"
-        if location
-        else f"- [ ] {problem.message}"
-    )
+    if problem.where:
+        return f"- [ ] {problem.where}: {problem.message}"
+    return f"- [ ] {problem.message}"
 
 
 def _result(result: Result) -> str:
