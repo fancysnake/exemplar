@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from typer.testing import CliRunner
 
@@ -6,6 +8,8 @@ from exemplar.inits.cli import audit
 
 # click's exit code for a usage error, which a bare `exemplar` is
 USAGE_ERROR = 2
+# typer forces rich colour under GITHUB_ACTIONS, splitting messages with codes
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 STANDARDS = {
     "lint/_shared/LICENSE": "MIT\n",
@@ -30,6 +34,10 @@ def write(root, files):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
     return root
+
+
+def plain(output):
+    return ANSI.sub("", output)
 
 
 @pytest.fixture(name="standards")
@@ -57,7 +65,7 @@ def test_no_arguments_prints_help():
     result = CliRunner().invoke(CliGate(version="1.2.3", audit=audit).app, [])
 
     assert result.exit_code == USAGE_ERROR
-    assert "Usage: " in result.output
+    assert "Usage: " in plain(result.output)
 
 
 def test_passing_repo_ticks_every_bit_by_root(tmp_path, standards):
@@ -150,9 +158,9 @@ def test_broken_standards_is_a_usage_error(tmp_path, standards):
     result = check(write(tmp_path / "repo", PASSING), standards)
 
     assert result.exit_code == USAGE_ERROR
-    assert "Invalid value for '--standards'" in result.output
+    assert "Invalid value for '--standards'" in plain(result.output)
     assert "stray.txt: the standards root holds only category directories" in (
-        result.output
+        plain(result.output)
     )
 
 
@@ -160,4 +168,4 @@ def test_repo_must_be_a_directory(tmp_path, standards):
     result = check(tmp_path / "nowhere", standards)
 
     assert result.exit_code == USAGE_ERROR
-    assert "does not exist" in result.output
+    assert "does not exist" in plain(result.output)
