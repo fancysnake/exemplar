@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning].
 - `exemplar check`: checks a repository against the standards tree and prints
   a markdown checklist of every bit under each root; exits 1 while any item is
   open.
+- YAML is read by the YAML 1.2 core schema, as the tools it configures read it:
+  `on` and `12:30` stay strings and `0755` is decimal. Merge keys (`<<`) still
+  merge.
 - Documentation site at <https://exemplar.fancysnake.dev>, built by
   `mise run site:build`.
 

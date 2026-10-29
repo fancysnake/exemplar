@@ -1,4 +1,6 @@
+import datetime
 import errno
+import math
 import os
 from pathlib import Path, PurePosixPath
 
@@ -112,6 +114,38 @@ def test_yaml_reads_only_true_and_false_as_booleans(tmp_path):
     table = read_table(tmp_path, "ci.yml", "on: push\nstrict: true\ncolor: yes\n")
 
     assert table == {"on": "push", "strict": True, "color": "yes"}
+
+
+@pytest.mark.parametrize(
+    ("scalar", "value"),
+    [
+        ("0755", 755),
+        ("0o14", 12),
+        ("0x1F", 31),
+        ("-12", -12),
+        ("1e3", 1000.0),
+        ("-.5", -0.5),
+        (".inf", math.inf),
+        ("Null", None),
+        ("", None),
+        ("12:30", "12:30"),
+        ("1_000", "1_000"),
+        ("0b11", "0b11"),
+        ("2026-01-01", "2026-01-01"),
+        ("=", "="),
+        ("!!timestamp 2026-01-01", datetime.date(2026, 1, 1)),
+    ],
+)
+def test_yaml_reads_scalars_by_the_yaml_12_core_schema(tmp_path, scalar, value):
+    parsed = read_table(tmp_path, "ci.yml", f"key: {scalar}\n")["key"]
+
+    assert (parsed, type(parsed)) == (value, type(value))
+
+
+def test_yaml_merges_mapping_under_merge_key(tmp_path):
+    table = read_table(tmp_path, "ci.yml", "base: &base {a: 1}\nmerged:\n  <<: *base\n")
+
+    assert table["merged"] == {"a": 1}
 
 
 def test_yaml_keeps_non_string_keys_at_every_depth(tmp_path):
