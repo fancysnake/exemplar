@@ -110,15 +110,17 @@ def test_unparseable_table_fails(tmp_path, name, content, reason):
         read_table(tmp_path, name, content)
 
 
-def test_yaml_reads_only_true_and_false_as_booleans(tmp_path):
-    table = read_table(tmp_path, "ci.yml", "on: push\nstrict: true\ncolor: yes\n")
-
-    assert table == {"on": "push", "strict": True, "color": "yes"}
+def test_yaml_reads_on_key_as_string(tmp_path):
+    assert read_table(tmp_path, "ci.yml", "on: push\n") == {"on": "push"}
 
 
 @pytest.mark.parametrize(
     ("scalar", "value"),
     [
+        ("true", True),
+        ("TRUE", True),
+        ("yes", "yes"),
+        ("on", "on"),
         ("0755", 755),
         ("0o14", 12),
         ("0x1F", 31),

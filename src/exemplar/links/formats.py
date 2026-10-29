@@ -47,45 +47,12 @@ def _load_yaml(text: str) -> Parsed:
     return document
 
 
-# Plain scalars the YAML 1.2 core schema types, with the first characters each
-# can start with; every other plain scalar is a string. Compose and other YAML
-# 1.2 readers still merge `<<` keys, though the core schema dropped them.
-_CORE_SCHEMA: list[tuple[str, str, tuple[str, ...]]] = [
-    ("tag:yaml.org,2002:null", r"null|Null|NULL|~|", ("", *"nN~")),
-    ("tag:yaml.org,2002:bool", r"true|True|TRUE|false|False|FALSE", tuple("tTfF")),
-    (
-        "tag:yaml.org,2002:int",
-        r"[-+]?[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+",
-        tuple("-+0123456789"),
-    ),
-    (
-        "tag:yaml.org,2002:float",
-        (
-            r"[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?"
-            r"|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN)"
-        ),
-        tuple("-+.0123456789"),
-    ),
-    ("tag:yaml.org,2002:merge", r"<<", ("<",)),
-]
-# Keyed by a scalar's first character, `""` for the empty scalar.
-type _Resolvers = dict[str, list[tuple[str, re.Pattern[str]]]]
-_YAML_12_RESOLVERS: _Resolvers = {}
-for _tag, _pattern, _firsts in _CORE_SCHEMA:
-    for _first in _firsts:
-        _YAML_12_RESOLVERS.setdefault(_first, []).append(
-            (_tag, re.compile(rf"(?:{_pattern})\Z"))
-        )
-
-
 class _YamlLoader(yaml.SafeLoader):
     """`SafeLoader` typing plain scalars by the YAML 1.2 core schema.
 
     YAML 1.1 reads a GitHub workflow's `on:` key as `True`, `0755` as octal 493
     and `12:30` as 750.
     """
-
-    yaml_implicit_resolvers = _YAML_12_RESOLVERS
 
 
 _INT_BASES = {"0o": 8, "0x": 16}
@@ -96,4 +63,29 @@ def _construct_int(loader: _YamlLoader, node: yaml.ScalarNode) -> int:
     return int(value, _INT_BASES.get(value[:2], 10))
 
 
+# Types the plain scalars matching `pattern` and starting with a character of
+# `firsts`, `""` for the empty scalar, as `tag`.
+def _resolve(tag: str, pattern: str, firsts: list[str]) -> None:
+    regexp = re.compile(rf"(?:{pattern})\Z")
+    _YamlLoader.add_implicit_resolver(tag, regexp, firsts)
+
+
+# Its own table, so `add_implicit_resolver` skips copying YAML 1.1's. Every
+# plain scalar the core schema leaves untyped is a string. Compose and other
+# YAML 1.2 readers still merge `<<` keys, though the core schema dropped them.
+_YamlLoader.yaml_implicit_resolvers = dict[str, list[tuple[str, re.Pattern[str]]]]()
+_resolve("tag:yaml.org,2002:null", r"null|Null|NULL|~|", ["", *"nN~"])
+_resolve("tag:yaml.org,2002:bool", r"true|True|TRUE|false|False|FALSE", [*"tTfF"])
+_resolve(
+    "tag:yaml.org,2002:int", r"[-+]?[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+", [*"-+0123456789"]
+)
+_resolve(
+    "tag:yaml.org,2002:float",
+    (
+        r"[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?"
+        r"|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN)"
+    ),
+    [*"-+.0123456789"],
+)
+_resolve("tag:yaml.org,2002:merge", r"<<", ["<"])
 _YamlLoader.add_constructor("tag:yaml.org,2002:int", _construct_int)
