@@ -89,8 +89,70 @@ class Pick:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class Problem:
+    """What is wrong in the picks, at `category` or `category.variant`.
+
+    `where` is empty when the problem is the whole file.
+    """
+
+    where: str
+    message: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Picks:
-    """The valid picks, and a checklist line for each one that failed."""
+    """The valid picks, and a problem for each one that failed."""
 
     picks: tuple[Pick, ...]
-    problems: tuple[str, ...]
+    problems: tuple[Problem, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Result:
+    """One bit checked; `problem` is `None` on a pass."""
+
+    bit: Bit
+    problem: str | None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PicksSection:
+    """The file holding the picks, and every problem with them."""
+
+    path: PurePosixPath
+    problems: tuple[Problem, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Section:
+    """Every bit of one pick checked under one of its roots."""
+
+    category: str
+    variant: str
+    root: PurePosixPath
+    results: tuple[Result, ...]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Report:
+    """The checklist: the picks first, then a section per pick and root."""
+
+    picks: PicksSection
+    sections: tuple[Section, ...]
+
+    @property
+    def open(self) -> bool:
+        """Whether any item is left to fix."""
+        return bool(self.picks.problems) or any(
+            result.problem is not None
+            for section in self.sections
+            for result in section.results
+        )
+
+
+class AuditServiceProtocol(Protocol):
+    def audit(self) -> Report:
+        """Check the repository's picks and every bit they pick.
+
+        `StandardsError` when the standards tree cannot be read.
+        """

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning].
 ### Added
 
 - `exemplar` command line, printing its version.
+- `exemplar check`: checks a repository against the standards tree and prints
+  a markdown checklist of every bit under each root; exits 1 while any item is
+  open.
 - Documentation site at <https://exemplar.fancysnake.dev>, built by
   `mise run site:build`.
 
