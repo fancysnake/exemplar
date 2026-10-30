@@ -119,6 +119,15 @@ def test_malformed_exemplar_toml_fails(text):
     assert not picks.problems[0].where
 
 
+def test_unknown_field_holding_a_line_break_is_not_echoed():
+    picks = read('[lang.node]\n"roots\\n- [x] forged" = "x"\n')
+
+    assert picks == Picks(
+        picks=(),
+        problems=(Problem(where="", message="a key holds a non-printable character"),),
+    )
+
+
 @pytest.mark.parametrize(
     "lint", ["lint = []", "[lint]"], ids=["empty-list", "empty-table"]
 )
@@ -188,6 +197,28 @@ def test_every_unpicked_category_fails():
         (
             "lang = { node = { root = ['frontend', './frontend'] } }",
             Problem(where="lang.node", message="root `./frontend` listed twice"),
+        ),
+        (
+            r'"ci\n- [x] forged" = "github"',
+            Problem(
+                where="", message="a category name holds a non-printable character"
+            ),
+        ),
+        (
+            r'lint = ["ruff", "x\n- [x] forged", "x\n- [x] forged"]',
+            Problem(
+                where="lint", message="a variant name holds a non-printable character"
+            ),
+        ),
+        (
+            r'lang = { "node\r- [x] forged" = {} }',
+            Problem(
+                where="lang", message="a variant name holds a non-printable character"
+            ),
+        ),
+        (
+            r'lang = { node = { root = ["frontend", "a\u2028- [x] forged"] } }',
+            Problem(where="lang", message="a root holds a non-printable character"),
         ),
     ],
 )

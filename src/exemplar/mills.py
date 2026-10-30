@@ -25,7 +25,7 @@ from exemplar.pacts import (
 from exemplar.specs import EXEMPLAR_TOML
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Mapping
+    from collections.abc import Callable, Iterable, Iterator, Mapping
 
     from exemplar.pacts import Bit, Category, Parsed, Table
 
@@ -53,12 +53,27 @@ class PicksService:
         try:
             toml = msgspec.toml.decode(text, type=dict[str, _Value])
         except msgspec.DecodeError as error:
-            return Picks(picks=(), problems=(Problem(where="", message=str(error)),))
+            # An unknown field is named in the error, as written.
+            message = str(error)
+            if not message.isprintable():
+                message = _unprintable("a key")
+            return Picks(picks=(), problems=(Problem(where="", message=message),))
         results: list[Pick | Problem] = []
         picked: set[str] = set()
         for name, value in toml.items():
+            # The checklist prints names as written; a line break in one
+            # forges a ticked item.
+            if not name.isprintable():
+                results.append(
+                    Problem(where="", message=_unprintable("a category name"))
+                )
+                continue
             if (category := standards.get(name)) is None:
                 results.append(Problem(where=name, message="unknown category"))
+                continue
+            if (slot := _unprintable_slot(value)) is not None:
+                picked.add(name)
+                results.append(Problem(where=name, message=_unprintable(slot)))
                 continue
             variants, problems = _normalise(name, value)
             results.extend(problems)
@@ -215,6 +230,23 @@ def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[Pro
             problems.append(Problem(where=name, message=f"`{variant}` picked twice"))
         variants[variant] = [_REPO_ROOT]
     return variants, problems
+
+
+def _unprintable_slot(value: _Value) -> str | None:
+    if isinstance(value, dict):
+        if not _printable(value):
+            return "a variant name"
+        roots = [root for table in value.values() for root in _listed(table.root)]
+        return None if _printable(roots) else "a root"
+    return None if _printable(_listed(value)) else "a variant name"
+
+
+def _printable(names: Iterable[str]) -> bool:
+    return all(name.isprintable() for name in names)
+
+
+def _unprintable(slot: str) -> str:
+    return f"{slot} holds a non-printable character"
 
 
 def _listed(value: str | list[str]) -> list[str]:

@@ -145,6 +145,28 @@ def test_pick_problems_are_open_under_exemplar_toml(tmp_path, standards):
     )
 
 
+def test_line_break_in_a_root_cannot_forge_a_ticked_item(tmp_path, standards):
+    repo = write(
+        tmp_path / "repo",
+        PASSING | {"exemplar.toml": PICKS.replace("admin", r"a\n- [x] forged")},
+    )
+
+    result = check(repo, standards)
+
+    assert result.exit_code == 1
+    assert result.output == (
+        "### exemplar.toml\n"
+        "\n"
+        "- [ ] lang: a root holds a non-printable character\n"
+        "\n"
+        "### lint: ruff\n"
+        "\n"
+        "- [x] pyproject.toml ⊇ ruff.toml\n"
+        "- [x] ruff.toml\n"
+        "- [x] LICENSE\n"
+    )
+
+
 def test_missing_exemplar_toml_is_open(tmp_path, standards):
     result = check(write(tmp_path / "repo", {"LICENSE": "MIT\n"}), standards)
 
