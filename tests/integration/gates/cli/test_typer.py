@@ -157,13 +157,7 @@ def test_line_break_in_a_root_cannot_forge_a_ticked_item(tmp_path, standards):
     assert result.output == (
         "### exemplar.toml\n"
         "\n"
-        "- [ ] lang: a root holds a non-printable character\n"
-        "\n"
-        "### lint: ruff\n"
-        "\n"
-        "- [x] pyproject.toml ⊇ ruff.toml\n"
-        "- [x] ruff.toml\n"
-        "- [x] LICENSE\n"
+        "- [ ] a category, variant or root holds a non-printable character\n"
     )
 
 

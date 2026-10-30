@@ -124,7 +124,40 @@ def test_unknown_field_holding_a_line_break_is_not_echoed():
 
     assert picks == Picks(
         picks=(),
-        problems=(Problem(where="", message="a key holds a non-printable character"),),
+        problems=(
+            Problem(
+                where="",
+                message="an unknown field holds a non-printable character"
+                " - at `$[...][...]`",
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        r'"ci\n- [x] forged" = "github"',
+        r'lint = ["ruff", "x\n- [x] forged"]',
+        r'docs = { "mkdocs-mise\r- [x] forged" = {} }',
+        r'docs = { mkdocs-mise = { root = ["site", "a\u2028- [x] forged"] } }',
+    ],
+    ids=["category", "variant", "variant-key", "root"],
+)
+def test_unprintable_name_refuses_the_whole_file(line):
+    category = line.split()[0]
+    others = [row for row in ALL_PICKED.splitlines() if row.split()[0] != category]
+
+    picks = read("\n".join([*others, line]))
+
+    assert picks == Picks(
+        picks=(),
+        problems=(
+            Problem(
+                where="",
+                message="a category, variant or root holds a non-printable character",
+            ),
+        ),
     )
 
 
@@ -197,28 +230,6 @@ def test_every_unpicked_category_fails():
         (
             "lang = { node = { root = ['frontend', './frontend'] } }",
             Problem(where="lang.node", message="root `./frontend` listed twice"),
-        ),
-        (
-            r'"ci\n- [x] forged" = "github"',
-            Problem(
-                where="", message="a category name holds a non-printable character"
-            ),
-        ),
-        (
-            r'lint = ["ruff", "x\n- [x] forged", "x\n- [x] forged"]',
-            Problem(
-                where="lint", message="a variant name holds a non-printable character"
-            ),
-        ),
-        (
-            r'lang = { "node\r- [x] forged" = {} }',
-            Problem(
-                where="lang", message="a variant name holds a non-printable character"
-            ),
-        ),
-        (
-            r'lang = { node = { root = ["frontend", "a\u2028- [x] forged"] } }',
-            Problem(where="lang", message="a root holds a non-printable character"),
         ),
     ],
 )
