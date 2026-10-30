@@ -144,6 +144,12 @@ def test_yaml_reads_scalars_by_the_yaml_12_core_schema(tmp_path, scalar, value):
     assert (parsed, type(parsed)) == (value, type(value))
 
 
+@pytest.mark.parametrize("scalar", ["0b11", "foo", "0o9"])
+def test_yaml_unparseable_tagged_int_fails_at_its_position(tmp_path, scalar):
+    with pytest.raises(RepoError, match=r"^not valid yaml: (?s:.*)line 1, column 6"):
+        read_table(tmp_path, "ci.yml", f"key: !!int {scalar}\n")
+
+
 def test_yaml_merges_mapping_under_merge_key(tmp_path):
     table = read_table(tmp_path, "ci.yml", "base: &base {a: 1}\nmerged:\n  <<: *base\n")
 

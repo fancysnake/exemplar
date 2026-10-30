@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Literal
 
 import msgspec
 import yaml
+from yaml.constructor import ConstructorError
+from yaml.error import Mark
 
 from exemplar.pacts import Parsed
 
@@ -60,7 +62,15 @@ _INT_BASES = {"0o": 8, "0x": 16}
 
 def _construct_int(loader: _YamlLoader, node: yaml.ScalarNode) -> int:
     value = loader.construct_scalar(node)
-    return int(value, _INT_BASES.get(value[:2], 10))
+    try:
+        return int(value, _INT_BASES.get(value[:2], 10))
+    except ValueError as error:
+        # The stub types `start_mark` as `Mark | Any`; the pattern narrows it.
+        mark = None
+        match node:
+            case object(start_mark=Mark() as start_mark):
+                mark = start_mark
+        raise ConstructorError(None, None, str(error), mark) from error
 
 
 # Types the plain scalars matching `pattern` and starting with a character of
