@@ -59,3 +59,20 @@ jobs:
           disable_search: true
           # Nothing else gates diff coverage in CI, so a lost upload must fail.
           fail_ci_if_error: true
+
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - uses: ./
+      - id: open
+        uses: ./
+        continue-on-error: true
+        with:
+          path: tests/fixtures/action/open
+      - if: steps.open.outcome != 'failure'
+        run: |
+          echo "an open item must fail the action"
+          exit 1
