@@ -56,9 +56,11 @@ markdown_extensions:
 watch:
   - README.md
   - CHANGELOG.md
+  - standards
 
 nav:
   - index.md
   - checking.md
+  - standards.md
   - architecture.md
   - changelog.md
