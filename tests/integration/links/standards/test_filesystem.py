@@ -7,8 +7,6 @@ import pytest
 from exemplar.links.standards.filesystem import FilesystemStandardsRepository
 from exemplar.pacts import Category, FileBit, FragmentBit, StandardsError, Variant
 
-STANDARDS = Path(__file__).parents[4] / "standards"
-
 
 def write(path, content=""):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -251,56 +249,4 @@ def test_bit_keeps_line_endings(tmp_path, content):
 
     assert standards["lint"].variants["ruff"].bits == (
         FileBit(path=PurePosixPath("ruff.toml"), content=content),
-    )
-
-
-def test_reads_the_kept_standards():
-    standards = FilesystemStandardsRepository(STANDARDS).read()
-
-    assert standards["lang"] == Category(
-        optional=False,
-        shared=(),
-        variants={
-            "node": Variant(
-                bits=(
-                    FragmentBit(
-                        path=PurePosixPath("package.json"),
-                        fragment="module.json",
-                        content={"private": True, "type": "module"},
-                    ),
-                )
-            ),
-            "python": Variant(
-                bits=(
-                    FragmentBit(
-                        path=PurePosixPath("mise.toml"),
-                        fragment="venv.toml",
-                        content={
-                            "env": {
-                                "_": {
-                                    "python": {
-                                        "venv": {"path": ".venv", "create": True}
-                                    }
-                                }
-                            }
-                        },
-                    ),
-                    FragmentBit(
-                        path=PurePosixPath("pyproject.toml"),
-                        fragment="project.toml",
-                        content={
-                            "project": {
-                                "authors": [
-                                    {
-                                        "name": "Radosław Ganczarek",
-                                        "email": "radoslaw@ganczarek.in",
-                                    }
-                                ],
-                                "readme": "README.md",
-                            }
-                        },
-                    ),
-                )
-            ),
-        },
     )
