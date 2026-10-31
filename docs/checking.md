@@ -51,6 +51,13 @@ repository on `fancysnake/exemplar@main` is always checked against the current
 standards.
 
 ```yaml
+"on":
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
 jobs:
   exemplar:
     runs-on: ubuntu-latest
@@ -63,8 +70,7 @@ jobs:
 
 The action installs its own Python and leaves the job's toolchain alone, then
 runs `exemplar check`. It fails while any item is open. The checklist goes to
-the log and to the job summary; the `checklist` output is the path of the file
-holding it.
+the log and to the job summary.
 
 | input | default | meaning |
 | --- | --- | --- |

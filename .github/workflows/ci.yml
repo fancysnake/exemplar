@@ -66,10 +66,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
-      - id: ticked
-        uses: ./
-        with:
-          path: tests/fixtures/action/ticked
+      - uses: ./
       - id: open
         uses: ./
         continue-on-error: true
@@ -79,10 +76,3 @@ jobs:
         run: |
           echo "an open item must fail the action"
           exit 1
-      - env:
-          CHECKLIST: ${{ steps.open.outputs.checklist }}
-        run: grep -F -- '- [ ] package.json' "$CHECKLIST"
-      # The second run must not have written over the first one's checklist.
-      - env:
-          CHECKLIST: ${{ steps.ticked.outputs.checklist }}
-        run: grep -F -- '- [x] package.json' "$CHECKLIST"

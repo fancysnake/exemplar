@@ -9,11 +9,6 @@ inputs:
     description: The repository to check, relative to the workspace.
     default: "."
 
-outputs:
-  checklist:
-    description: The markdown checklist file the run wrote.
-    value: ${{ steps.check.outputs.checklist }}
-
 runs:
   using: composite
   steps:
@@ -24,23 +19,20 @@ runs:
       with:
         python-version: "3.14"
         update-environment: false
+    # pip takes the newest versions pyproject.toml allows, not poetry.lock's
+    # pins. Each dependency is capped below its next breaking release and
+    # renovate keeps the lock near the newest, so the drift stays small.
     - shell: bash
       env:
         PYTHON: ${{ steps.python.outputs.python-path }}
       run: |
         "$PYTHON" -m venv "$RUNNER_TEMP/exemplar"
         "$RUNNER_TEMP/exemplar/bin/pip" install --quiet "$GITHUB_ACTION_PATH"
-    - id: check
-      shell: bash
+    # `shell: bash` runs with pipefail, so the step exits with exemplar's code.
+    - shell: bash
       env:
         REPO: ${{ inputs.path }}
       run: |
-        # Its own file, so a second run in the job leaves the first one's alone.
-        checklist="$(mktemp -d "$RUNNER_TEMP/exemplar.XXXXXX")/checklist.md"
-        status=0
         "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
-          --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
-        cat "$checklist"
-        cat "$checklist" >> "$GITHUB_STEP_SUMMARY"
-        echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
-        exit "$status"
+          --standards "$GITHUB_ACTION_PATH/standards" \
+          | tee -a "$GITHUB_STEP_SUMMARY"
