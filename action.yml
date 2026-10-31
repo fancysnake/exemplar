@@ -1,0 +1,45 @@
+---
+name: exemplar
+description: >-
+  Check the repository against the shared standards; fail while any checklist
+  item is open.
+
+inputs:
+  path:
+    description: The repository to check, relative to the workspace.
+    default: "."
+
+outputs:
+  checklist:
+    description: The markdown checklist file the run wrote.
+    value: ${{ steps.check.outputs.checklist }}
+
+runs:
+  using: composite
+  steps:
+    # Its Python stays off PATH, so the calling job's own toolchain is left as
+    # it was.
+    - id: python
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
+      with:
+        python-version: "3.14"
+        update-environment: false
+    - shell: bash
+      env:
+        PYTHON: ${{ steps.python.outputs.python-path }}
+      run: |
+        "$PYTHON" -m venv "$RUNNER_TEMP/exemplar"
+        "$RUNNER_TEMP/exemplar/bin/pip" install --quiet "$GITHUB_ACTION_PATH"
+    - id: check
+      shell: bash
+      env:
+        REPO: ${{ inputs.path }}
+      run: |
+        checklist="$RUNNER_TEMP/exemplar-checklist.md"
+        status=0
+        "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
+          --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
+        cat "$checklist"
+        cat "$checklist" >> "$GITHUB_STEP_SUMMARY"
+        echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
+        exit "$status"

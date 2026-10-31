@@ -43,3 +43,29 @@ A broken pick checks no bits.
 | 0 | every item is ticked |
 | 1 | at least one item is open |
 | 2 | the command line or the standards tree is wrong; nothing was checked |
+
+## In CI
+
+exemplar is also a GitHub Action, and it ships with its own standards tree. A
+repository on `fancysnake/exemplar@main` is always checked against the current
+standards.
+
+```yaml
+jobs:
+  exemplar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: fancysnake/exemplar@main
+```
+
+The action installs its own Python and leaves the job's toolchain alone, then
+runs `exemplar check`. It fails while any item is open. The checklist goes to
+the log and to the job summary; the `checklist` output is the path of the file
+holding it.
+
+| input | default | meaning |
+| --- | --- | --- |
+| `path` | `.` | the repository to check, relative to the workspace |

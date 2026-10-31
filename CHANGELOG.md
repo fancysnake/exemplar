@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning].
   `mise run site:build`.
 - `lang` standard: `python` and `node` variants, holding the `pyproject.toml`,
   `mise.toml` and `package.json` settings every maintained repository shares.
+- GitHub Action `fancysnake/exemplar@main`: runs `exemplar check` on the
+  checked-out repository against the standards it ships with, writes the
+  checklist to the job summary and fails while any item is open.
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
