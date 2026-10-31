@@ -119,6 +119,48 @@ def test_malformed_exemplar_toml_fails(text):
     assert not picks.problems[0].where
 
 
+def test_unknown_field_holding_a_line_break_is_not_echoed():
+    picks = read('[lang.node]\n"roots\\n- [x] forged" = "x"\n')
+
+    assert picks == Picks(
+        picks=(),
+        problems=(
+            Problem(
+                where="",
+                message="an unknown field holds a non-printable character"
+                " - at `$[...][...]`",
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        r'"ci\n- [x] forged" = "github"',
+        r'lint = ["ruff", "x\n- [x] forged"]',
+        r'docs = { "mkdocs-mise\r- [x] forged" = {} }',
+        r'docs = { mkdocs-mise = { root = ["site", "a\u2028- [x] forged"] } }',
+    ],
+    ids=["category", "variant", "variant-key", "root"],
+)
+def test_unprintable_name_refuses_the_whole_file(line):
+    category = line.split()[0]
+    others = [row for row in ALL_PICKED.splitlines() if row.split()[0] != category]
+
+    picks = read("\n".join([*others, line]))
+
+    assert picks == Picks(
+        picks=(),
+        problems=(
+            Problem(
+                where="",
+                message="a category, variant or root holds a non-printable character",
+            ),
+        ),
+    )
+
+
 @pytest.mark.parametrize(
     "lint", ["lint = []", "[lint]"], ids=["empty-list", "empty-table"]
 )

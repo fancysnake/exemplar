@@ -53,7 +53,22 @@ class PicksService:
         try:
             toml = msgspec.toml.decode(text, type=dict[str, _Value])
         except msgspec.DecodeError as error:
-            return Picks(picks=(), problems=(Problem(where="", message=str(error)),))
+            # An unknown field is named in the error, as written.
+            message = str(error)
+            if message.isprintable():
+                problem = Problem(where="", message=message)
+            else:
+                _, at, location = message.rpartition(" - at ")
+                problem = _unprintable(
+                    "an unknown field", f"{at}{location}" if at else ""
+                )
+            return Picks(picks=(), problems=(problem,))
+        # The checklist prints names as written; a line break in one forges a
+        # ticked item.
+        if not all(name.isprintable() for name in _names(toml)):
+            return Picks(
+                picks=(), problems=(_unprintable("a category, variant or root"),)
+            )
         results: list[Pick | Problem] = []
         picked: set[str] = set()
         for name, value in toml.items():
@@ -215,6 +230,23 @@ def _normalise(name: str, value: _Value) -> tuple[dict[str, list[str]], list[Pro
             problems.append(Problem(where=name, message=f"`{variant}` picked twice"))
         variants[variant] = [_REPO_ROOT]
     return variants, problems
+
+
+def _names(toml: Mapping[str, _Value]) -> Iterator[str]:
+    for name, value in toml.items():
+        yield name
+        if isinstance(value, dict):
+            for variant, table in value.items():
+                yield variant
+                yield from _listed(table.root)
+        else:
+            yield from _listed(value)
+
+
+def _unprintable(what: str, location: str = "") -> Problem:
+    return Problem(
+        where="", message=f"{what} holds a non-printable character{location}"
+    )
 
 
 def _listed(value: str | list[str]) -> list[str]:

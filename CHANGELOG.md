@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning].
 - YAML is read by the YAML 1.2 core schema, as the tools it configures read it:
   `on` and `12:30` stay strings and `0755` is decimal. Merge keys (`<<`) still
   merge.
+- An `exemplar.toml` whose category, variant, root or unknown key holds a
+  non-printable character, such as a line break, is refused whole, like
+  malformed TOML, and the name is never printed, so it cannot forge a ticked
+  checklist item.
 - Documentation site at <https://exemplar.fancysnake.dev>, built by
   `mise run site:build`.
 
