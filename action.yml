@@ -35,7 +35,8 @@ runs:
       env:
         REPO: ${{ inputs.path }}
       run: |
-        checklist="$RUNNER_TEMP/exemplar-checklist.md"
+        # Its own file, so a second run in the job leaves the first one's alone.
+        checklist="$(mktemp -d "$RUNNER_TEMP/exemplar.XXXXXX")/checklist.md"
         status=0
         "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
           --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
