@@ -1,0 +1,3 @@
+[project]
+authors = [{ name = "Radosław Ganczarek", email = "radoslaw@ganczarek.in" }]
+readme = "README.md"

@@ -60,5 +60,6 @@ watch:
 nav:
   - index.md
   - checking.md
+  - standards.md
   - architecture.md
   - changelog.md
