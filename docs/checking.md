@@ -78,8 +78,9 @@ the log and to the job summary.
 On a push to the default branch, the action also keeps one checklist issue in
 the repository. It opens the issue when an item is first open, rewrites it on
 every push, closes it once every item is ticked and reopens it when one opens
-again. A hidden marker at the top of the body identifies the issue, so retitling
-it is safe. Scheduled, manual and pull request runs leave the issue alone.
+again. The `exemplar` label identifies the issue, so retitling it is safe;
+removing the label makes the next failing push open a new one. Scheduled,
+manual and pull request runs leave the issue alone.
 
 | input | default | meaning |
 | --- | --- | --- |

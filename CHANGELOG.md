@@ -27,9 +27,9 @@ and this project adheres to [Semantic Versioning].
 - GitHub Action `fancysnake/exemplar@main`: runs `exemplar check` on the
   checked-out repository against the standards it ships with, writes the
   checklist to the job summary and fails while any item is open.
-- The action keeps one checklist issue in the repository on a push to the
-  default branch: opened while an item is open, closed once all are ticked,
-  reopened when one opens again. `issue: false` turns it off.
+- The action keeps one checklist issue, labelled `exemplar`, in the repository
+  on a push to the default branch: opened while an item is open, closed once
+  all are ticked, reopened when one opens again. `issue: false` turns it off.
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html

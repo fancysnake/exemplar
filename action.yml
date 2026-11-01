@@ -41,56 +41,36 @@ runs:
       run: |
         "$PYTHON" -m venv "$RUNNER_TEMP/exemplar"
         "$RUNNER_TEMP/exemplar/bin/pip" install --quiet "$GITHUB_ACTION_PATH"
-    # The step passes whatever the check finds, so the issue step still runs;
-    # the last step fails the job. Each run gets its own file, so a second run
-    # in one job leaves the first one's alone.
+    # Each run gets its own file, so a second run in one job leaves the first
+    # one's alone.
     - id: check
       shell: bash
       env:
         REPO: ${{ inputs.path }}
       run: |
         checklist="$(mktemp -d "$RUNNER_TEMP/exemplar.XXXXXX")/checklist.md"
+        echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
         status=0
         "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
           --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
-        tee -a "$GITHUB_STEP_SUMMARY" < "$checklist"
-        echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
         echo "status=$status" >> "$GITHUB_OUTPUT"
-    # Exit 2 checked nothing, so there is no checklist to keep. A pull
-    # request's token cannot write issues when it comes from a fork, and its
-    # checklist is not the default branch's.
+        tee -a "$GITHUB_STEP_SUMMARY" < "$checklist"
+        exit "$status"
+    # Only exits 0 and 1 print a checklist: 2 checked nothing, a crash or a
+    # kill prints none. A pull request's token cannot write issues when it
+    # comes from a fork, and its checklist is not the default branch's.
     - if: >-
-        inputs.issue == 'true'
-        && steps.check.outputs.status != '2'
+        !cancelled()
+        && inputs.issue == 'true'
+        && (steps.check.outputs.status == '0'
+          || steps.check.outputs.status == '1')
         && github.event_name == 'push'
-        && github.ref_name == github.event.repository.default_branch
+        && github.ref == format('refs/heads/{0}',
+          github.event.repository.default_branch)
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
         GH_REPO: ${{ github.repository }}
         CHECKLIST: ${{ steps.check.outputs.checklist }}
         STATUS: ${{ steps.check.outputs.status }}
-      run: |
-        marker='<!-- exemplar:checklist -->'
-        body="$(printf '%s\n\n' "$marker"; cat "$CHECKLIST")"
-        found="$(gh api --paginate "repos/$GH_REPO/issues?state=all&per_page=100" \
-          --jq ".[] | select(.pull_request == null)
-            | select((.body // \"\") | startswith(\"$marker\"))
-            | \"\(.number) \(.state)\"")"
-        read -r number state <<< "$found"
-        if [[ -z "$number" ]]; then
-          if [[ "$STATUS" != 0 ]]; then
-            gh issue create --title "exemplar checklist" --body "$body"
-          fi
-          exit 0
-        fi
-        gh issue edit "$number" --body "$body"
-        if [[ "$STATUS" == 0 && "$state" == open ]]; then
-          gh issue close "$number"
-        elif [[ "$STATUS" != 0 && "$state" == closed ]]; then
-          gh issue reopen "$number"
-        fi
-    - shell: bash
-      env:
-        STATUS: ${{ steps.check.outputs.status }}
-      run: exit "$STATUS"
+      run: bash "$GITHUB_ACTION_PATH/action/issue.sh"
