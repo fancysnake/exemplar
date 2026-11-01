@@ -1,13 +1,26 @@
 ---
 name: exemplar
 description: >-
-  Check the repository against the shared standards; fail while any checklist
-  item is open.
+  Check the repository against the shared standards, keep its checklist issue
+  up to date and fail while any checklist item is open.
 
 inputs:
   path:
     description: The repository to check, relative to the workspace.
     default: "."
+  issue:
+    description: >-
+      Keep the checklist issue on a push to the default branch: "true" or
+      "false".
+    default: "true"
+  token:
+    description: The token the checklist issue is written with.
+    default: ${{ github.token }}
+
+outputs:
+  checklist:
+    description: The markdown checklist file the run wrote.
+    value: ${{ steps.check.outputs.checklist }}
 
 runs:
   using: composite
@@ -28,11 +41,56 @@ runs:
       run: |
         "$PYTHON" -m venv "$RUNNER_TEMP/exemplar"
         "$RUNNER_TEMP/exemplar/bin/pip" install --quiet "$GITHUB_ACTION_PATH"
-    # `shell: bash` runs with pipefail, so the step exits with exemplar's code.
-    - shell: bash
+    # The step passes whatever the check finds, so the issue step still runs;
+    # the last step fails the job. Each run gets its own file, so a second run
+    # in one job leaves the first one's alone.
+    - id: check
+      shell: bash
       env:
         REPO: ${{ inputs.path }}
       run: |
+        checklist="$(mktemp -d "$RUNNER_TEMP/exemplar.XXXXXX")/checklist.md"
+        status=0
         "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
-          --standards "$GITHUB_ACTION_PATH/standards" \
-          | tee -a "$GITHUB_STEP_SUMMARY"
+          --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
+        tee -a "$GITHUB_STEP_SUMMARY" < "$checklist"
+        echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+    # Exit 2 checked nothing, so there is no checklist to keep. A pull
+    # request's token cannot write issues when it comes from a fork, and its
+    # checklist is not the default branch's.
+    - if: >-
+        inputs.issue == 'true'
+        && steps.check.outputs.status != '2'
+        && github.event_name == 'push'
+        && github.ref_name == github.event.repository.default_branch
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        GH_REPO: ${{ github.repository }}
+        CHECKLIST: ${{ steps.check.outputs.checklist }}
+        STATUS: ${{ steps.check.outputs.status }}
+      run: |
+        marker='<!-- exemplar:checklist -->'
+        body="$(printf '%s\n\n' "$marker"; cat "$CHECKLIST")"
+        found="$(gh api --paginate "repos/$GH_REPO/issues?state=all&per_page=100" \
+          --jq ".[] | select(.pull_request == null)
+            | select((.body // \"\") | startswith(\"$marker\"))
+            | \"\(.number) \(.state)\"")"
+        read -r number state <<< "$found"
+        if [[ -z "$number" ]]; then
+          if [[ "$STATUS" != 0 ]]; then
+            gh issue create --title "exemplar checklist" --body "$body"
+          fi
+          exit 0
+        fi
+        gh issue edit "$number" --body "$body"
+        if [[ "$STATUS" == 0 && "$state" == open ]]; then
+          gh issue close "$number"
+        elif [[ "$STATUS" != 0 && "$state" == closed ]]; then
+          gh issue reopen "$number"
+        fi
+    - shell: bash
+      env:
+        STATUS: ${{ steps.check.outputs.status }}
+      run: exit "$STATUS"

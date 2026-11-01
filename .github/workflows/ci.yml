@@ -66,13 +66,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
-      - uses: ./
+      # This workflow cannot write issues, so neither run keeps a checklist issue.
+      - id: ticked
+        uses: ./
+        with:
+          issue: "false"
       - id: open
         uses: ./
         continue-on-error: true
         with:
           path: tests/fixtures/action/open
+          issue: "false"
       - if: steps.open.outcome != 'failure'
         run: |
           echo "an open item must fail the action"
           exit 1
+      - env:
+          CHECKLIST: ${{ steps.open.outputs.checklist }}
+        run: grep -F -- '- [ ] package.json' "$CHECKLIST"
+      # The second run must not have written over the first one's checklist.
+      - env:
+          CHECKLIST: ${{ steps.ticked.outputs.checklist }}
+        run: grep -F -- '- [x] pyproject.toml' "$CHECKLIST"
