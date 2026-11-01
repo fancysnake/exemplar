@@ -1,13 +1,26 @@
 ---
 name: exemplar
 description: >-
-  Check the repository against the shared standards; fail while any checklist
-  item is open.
+  Check the repository against the shared standards, keep its checklist issue
+  up to date and fail while any checklist item is open.
 
 inputs:
   path:
     description: The repository to check, relative to the workspace.
     default: "."
+  issue:
+    description: >-
+      Keep the checklist issue on a push to the default branch: "true" or
+      "false".
+    default: "true"
+  token:
+    description: The token the checklist issue is written with.
+    default: ${{ github.token }}
+
+outputs:
+  checklist:
+    description: The markdown checklist file the run wrote.
+    value: ${{ steps.check.outputs.checklist }}
 
 runs:
   using: composite
@@ -28,11 +41,36 @@ runs:
       run: |
         "$PYTHON" -m venv "$RUNNER_TEMP/exemplar"
         "$RUNNER_TEMP/exemplar/bin/pip" install --quiet "$GITHUB_ACTION_PATH"
-    # `shell: bash` runs with pipefail, so the step exits with exemplar's code.
-    - shell: bash
+    # Each run gets its own file, so a second run in one job leaves the first
+    # one's alone.
+    - id: check
+      shell: bash
       env:
         REPO: ${{ inputs.path }}
       run: |
+        checklist="$(mktemp -d "$RUNNER_TEMP/exemplar.XXXXXX")/checklist.md"
+        echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
+        status=0
         "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
-          --standards "$GITHUB_ACTION_PATH/standards" \
-          | tee -a "$GITHUB_STEP_SUMMARY"
+          --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+        tee -a "$GITHUB_STEP_SUMMARY" < "$checklist"
+        exit "$status"
+    # Only exits 0 and 1 print a checklist: 2 checked nothing, a crash or a
+    # kill prints none. A pull request's token cannot write issues when it
+    # comes from a fork, and its checklist is not the default branch's.
+    - if: >-
+        !cancelled()
+        && inputs.issue == 'true'
+        && (steps.check.outputs.status == '0'
+          || steps.check.outputs.status == '1')
+        && github.event_name == 'push'
+        && github.ref == format('refs/heads/{0}',
+          github.event.repository.default_branch)
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        GH_REPO: ${{ github.repository }}
+        CHECKLIST: ${{ steps.check.outputs.checklist }}
+        STATUS: ${{ steps.check.outputs.status }}
+      run: bash "$GITHUB_ACTION_PATH/action/issue.sh"

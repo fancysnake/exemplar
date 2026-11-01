@@ -21,6 +21,8 @@ local sweep: Mapping<String, Step> = new {
   // CI
   ["yamllint"] = Builtins.yamllint
   ["actionlint"] = Builtins.actionlint
+  // actionlint shellchecks workflow scripts only, not the action's own
+  ["shellcheck"] = Builtins.shellcheck
 }
 
 local all: Mapping<String, Step> = (sweep) {

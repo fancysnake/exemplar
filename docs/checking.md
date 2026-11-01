@@ -61,6 +61,9 @@ standards.
 jobs:
   exemplar:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
@@ -72,6 +75,19 @@ The action installs its own Python and leaves the job's toolchain alone, then
 runs `exemplar check`. It fails while any item is open. The checklist goes to
 the log and to the job summary.
 
+On a push to the default branch, the action also keeps one checklist issue in
+the repository. It opens the issue when an item is first open, rewrites it on
+every push, closes it once every item is ticked and reopens it when one opens
+again. The `exemplar` label identifies the issue, so retitling it is safe;
+removing the label makes the next failing push open a new one. Scheduled,
+manual and pull request runs leave the issue alone.
+
 | input | default | meaning |
 | --- | --- | --- |
 | `path` | `.` | the repository to check, relative to the workspace |
+| `issue` | `true` | keep the checklist issue; `false` turns it off |
+| `token` | `github.token` | the token the issue is written with; needs `issues: write` |
+
+| output | meaning |
+| --- | --- |
+| `checklist` | the markdown checklist file the run wrote |
