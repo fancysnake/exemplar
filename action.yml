@@ -17,7 +17,7 @@ runs:
     - id: python
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
       with:
-        python-version: "3.14"
+        python-version: "3.15"
         update-environment: false
     # pip takes the newest versions pyproject.toml allows, not poetry.lock's
     # pins. Each dependency is capped below its next breaking release and
