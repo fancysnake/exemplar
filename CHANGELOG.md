@@ -29,10 +29,13 @@ and this project adheres to [Semantic Versioning].
   checklist to the job summary and fails while any item is open.
 - The action keeps one checklist issue, labelled `exemplar`, in the repository
   on a push to the default branch: opened while an item is open, closed once
-  all are ticked, reopened when one opens again. `issue: false` turns it off.
-- `ci` standard: `github` variant, the whole `.github/workflows/exemplar.yml`.
-  It calls the reusable `check.yml`, so a repository holds no pinned action and
-  always runs exemplar at `@main`.
+  all are ticked, reopened when one opens again. `issue: false` on a direct
+  call to the action turns it off; the standard workflow takes no inputs.
+- `ci` standard: `github` variant, the whole `.github/workflows/exemplar.yml`
+  and the `renovate.json` rule that keeps Renovate from pinning it. The
+  workflow runs on pull requests and on pushes to `main` or `master`, and calls
+  the reusable `check.yml`, so a repository holds no pinned action and always
+  runs exemplar at `@main`.
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html

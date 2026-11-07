@@ -66,7 +66,13 @@ the repository. It opens the issue when an item is first open, rewrites it on
 every push, closes it once every item is ticked and reopens it when one opens
 again. The `exemplar` label identifies the issue, so retitling it is safe;
 removing the label makes the next failing push open a new one. Scheduled,
-manual and pull request runs leave the issue alone.
+manual and pull request runs leave the issue alone. The standard workflow runs
+on pushes to `main` and `master` only, so a repository with another default
+branch gets no issue.
+
+These inputs and outputs apply when a workflow calls the action directly. The
+standard workflow takes no inputs, and its file is frozen, so a repository on
+it keeps the defaults.
 
 | input | default | meaning |
 | --- | --- | --- |

@@ -35,21 +35,16 @@ Required. The workflow that runs the check.
 --8<-- "standards/ci/github/.github/workflows/exemplar.yml"
 ```
 
-The file names exemplar at `@main`, so every repository runs the current check.
-Renovate would pin that reference to a commit, and the file would then differ
-from the standard. A repository on Renovate turns it off for exemplar in
-`renovate.json`:
+`renovate.json` must contain:
 
 ```json
-{
-  "packageRules": [
-    {
-      "matchPackageNames": ["fancysnake/exemplar"],
-      "enabled": false
-    }
-  ]
-}
+--8<-- "standards/ci/github/renovate.json/exemplar.json"
 ```
+
+The workflow names exemplar at `@main`, so every repository runs the current
+check. Renovate would pin that reference to a commit, and the file would then
+differ from the standard, so the rule turns Renovate off for exemplar. Every
+repository on this variant holds the rule, on Renovate or not.
 
 ## lang
 
