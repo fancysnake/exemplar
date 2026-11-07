@@ -21,6 +21,11 @@
   ],
   "packageRules": [
     {
+      "description": "the ci standard holds exemplar at @main, unpinned",
+      "matchPackageNames": ["fancysnake/exemplar"],
+      "enabled": false
+    },
+    {
       "description": "hk in mise.toml and hk.pkl move in one PR",
       "matchDepNames": ["hk"],
       "groupName": "hk"

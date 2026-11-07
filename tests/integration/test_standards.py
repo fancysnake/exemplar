@@ -7,5 +7,6 @@ def test_reads_the_kept_standards(request):
     standards = FilesystemStandardsRepository(root).read()
 
     assert {name: set(category.variants) for name, category in standards.items()} == {
-        "lang": {"node", "python"}
+        "ci": {"github"},
+        "lang": {"node", "python"},
     }

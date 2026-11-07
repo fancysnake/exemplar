@@ -23,6 +23,34 @@ Fragments hold only what the maintained repositories already agree on. They
 leave out tool and runtime versions: Renovate bumps those in each repository,
 and a repository chooses its own minimum Python.
 
+## ci
+
+Required. The workflow that runs the check.
+
+### github
+
+`.github/workflows/exemplar.yml` must equal:
+
+```yaml
+--8<-- "standards/ci/github/.github/workflows/exemplar.yml"
+```
+
+The file names exemplar at `@main`, so every repository runs the current check.
+Renovate would pin that reference to a commit, and the file would then differ
+from the standard. A repository on Renovate turns it off for exemplar in
+`renovate.json`:
+
+```json
+{
+  "packageRules": [
+    {
+      "matchPackageNames": ["fancysnake/exemplar"],
+      "enabled": false
+    }
+  ]
+}
+```
+
 ## lang
 
 Required. The language the repository is written in.

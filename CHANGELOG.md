@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning].
 - The action keeps one checklist issue, labelled `exemplar`, in the repository
   on a push to the default branch: opened while an item is open, closed once
   all are ticked, reopened when one opens again. `issue: false` turns it off.
+- `ci` standard: `github` variant, the whole `.github/workflows/exemplar.yml`.
+  It calls the reusable `check.yml`, so a repository holds no pinned action and
+  always runs exemplar at `@main`.
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
