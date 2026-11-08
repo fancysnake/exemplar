@@ -19,6 +19,7 @@ SRC_PATHS = "src"
 TEST_PATHS = "tests"
 SCRIPT_PATHS = ""
 TOML_PATHS = ".taplo.toml .vekna.toml pyproject.toml mise.toml tingle.toml"
+TEST_ENV_FILE = ".env.test"
 
 [settings]
 # The `git::` include below is an experimental mise feature; without this, CI
