@@ -19,7 +19,8 @@ concurrency:
 jobs:
   check:
     # The standard workflow's grant, so a permission the reusable one starts
-    # needing fails here first.
+    # needing fails this run at startup. Startup failures show in the Actions
+    # tab, not in the pull request's checks.
     permissions:
       contents: read
       issues: write
