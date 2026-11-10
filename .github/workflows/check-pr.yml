@@ -1,0 +1,27 @@
+---
+name: exemplar check (branch)
+
+# The branch's own reusable workflow, called the way repositories call it on
+# `main`. Pull requests only: on a push to main the action keeps the checklist
+# issue, and two runs there race over it. The action still comes from `main`,
+# so a branch that enables a category `main` lacks fails here; `paths` keeps
+# that to branches touching the workflow.
+"on":
+  pull_request:
+    paths:
+      - .github/workflows/check.yml
+      - .github/workflows/check-pr.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # The standard workflow's grant, so a permission the reusable one starts
+    # needing fails this run at startup. Startup failures show in the Actions
+    # tab, not in the pull request's checks.
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/check.yml
