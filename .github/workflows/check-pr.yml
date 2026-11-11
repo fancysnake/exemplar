@@ -3,9 +3,8 @@ name: exemplar check (branch)
 
 # The branch's own reusable workflow, called the way repositories call it on
 # `main`. Pull requests only: on a push to main the action keeps the checklist
-# issue, and two runs there race over it. The action still comes from `main`,
-# so a branch that enables a category `main` lacks fails here; `changes` keeps
-# that to branches touching the workflow.
+# issue, and two runs there race over it. `exemplar.yml` runs `main`'s copy on
+# every pull request; `changes` keeps this run to branches that change it.
 #
 # No `paths` filter: a ruleset on `main` requires `check-verdict`, and a
 # filtered-out workflow reports nothing, which leaves a required check pending.

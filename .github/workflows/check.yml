@@ -14,4 +14,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
-      - uses: fancysnake/exemplar@main
+      # exemplar checks itself with the action it has checked out, so its pull
+      # request knows the categories and variants that pull request adds.
+      - if: github.repository == 'fancysnake/exemplar'
+        uses: ./
+      - if: github.repository != 'fancysnake/exemplar'
+        uses: fancysnake/exemplar@main
