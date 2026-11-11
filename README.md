@@ -22,8 +22,7 @@ every bit.
 
 ## Adopting
 
-A repository adopts exemplar by adding `exemplar.toml`, one workflow file and
-one Renovate rule; see [Adopting exemplar](https://exemplar.fancysnake.dev/adopting/).
+See [Adopting exemplar](https://exemplar.fancysnake.dev/adopting/).
 
 ## Development
 
