@@ -23,6 +23,40 @@ Fragments hold only what the maintained repositories already agree on. They
 leave out tool and runtime versions: Renovate bumps those in each repository,
 and a repository chooses its own minimum Python.
 
+## Adding a standard
+
+A standard is files in `standards/`; no code changes. A pull request here is
+checked against its own branch's standards, so it may add a variant and pick
+it in `exemplar.toml` at once.
+
+A **category** is a directory, `standards/<category>/`. Every repository must
+pick a variant of it, so a new category opens an item in every repository
+until each one picks. To let a repository pick `none` instead, add
+`standards/<category>/category.toml`:
+
+```toml
+optional = true
+```
+
+A **variant** is a directory in the category,
+`standards/<category>/<variant>/`, under any name but `none`. Bits in `standards/<category>/_shared/`
+belong to every variant of the category.
+
+A **bit** is a file in the variant, at the path it has in the repository:
+
+- A file is a whole-file bit. The repository's file must equal it.
+- A directory named after a TOML, YAML or JSON file holds fragments of that
+  file, one per file, each in the same format. The repository's file must
+  contain each fragment: every key with an equal value, and every array item
+  in any order. The repository's file may hold more.
+
+So `standards/lang/python/pyproject.toml/project.toml` is a fragment that a
+repository's `pyproject.toml` must contain, and
+`standards/ci/github/.github/workflows/exemplar.yml` is a whole file.
+
+Then give the category or variant its section on this page, with each bit
+included from `standards/` as the sections below do.
+
 ## ci
 
 Required. The workflow that runs the check.

@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning].
   workflow runs on pull requests and on pushes to `main` or `master`, and calls
   the reusable `check.yml`, so a repository holds no pinned action and always
   runs exemplar at `@main`.
+- Manual pages on adopting exemplar in a repository and on adding a category,
+  variant or bit to the standards.
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
