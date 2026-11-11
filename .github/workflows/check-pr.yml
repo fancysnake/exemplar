@@ -4,24 +4,63 @@ name: exemplar check (branch)
 # The branch's own reusable workflow, called the way repositories call it on
 # `main`. Pull requests only: on a push to main the action keeps the checklist
 # issue, and two runs there race over it. The action still comes from `main`,
-# so a branch that enables a category `main` lacks fails here; `paths` keeps
+# so a branch that enables a category `main` lacks fails here; `changes` keeps
 # that to branches touching the workflow.
+#
+# No `paths` filter: a ruleset on `main` requires `check-verdict`, and a
+# filtered-out workflow reports nothing, which leaves a required check pending.
 "on":
   pull_request:
-    paths:
-      - .github/workflows/check.yml
-      - .github/workflows/check-pr.yml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      check-changed: ${{ steps.files.outputs.check-changed }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          CHANGED: ${{ github.event.pull_request.changed_files }}
+        run: |
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" \
+            --jq '.[] | .filename, .previous_filename // empty')
+          # The files endpoint lists at most 3000; past that, assume a hit.
+          if [ "$CHANGED" -gt 3000 ] ||
+            grep -qxE '\.github/workflows/check(-pr)?\.yml' <<<"$files"; then
+            echo "check-changed=true" >>"$GITHUB_OUTPUT"
+          fi
+
   check:
+    needs: changes
+    if: needs.changes.outputs.check-changed == 'true'
     # The standard workflow's grant, so a permission the reusable one starts
-    # needing fails this run at startup. Startup failures show in the Actions
-    # tab, not in the pull request's checks.
+    # needing fails this run at startup. A startup failure creates no job, so
+    # `check-verdict` never reports and the ruleset blocks the merge.
     permissions:
       contents: read
       issues: write
     uses: ./.github/workflows/check.yml
+
+  # The one name the ruleset requires. A skipped `check` reports under another
+  # name than a run one, so neither can be required directly.
+  check-verdict:
+    needs: [changes, check]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - env:
+          CHANGES: ${{ needs.changes.result }}
+          CHECK: ${{ needs.check.result }}
+        run: |
+          echo "changes=$CHANGES check=$CHECK"
+          [ "$CHANGES" = success ]
+          [ "$CHECK" = success ] || [ "$CHECK" = skipped ]
