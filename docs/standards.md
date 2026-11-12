@@ -71,3 +71,40 @@ Required. The language the repository is written in.
 ```json
 --8<-- "standards/lang/node/package.json/module.json"
 ```
+
+## Adding a standard
+
+A standard is files in `standards/`; no code changes. A pull request here is
+checked against its own branch's standards, so it may add a variant and pick
+it in `exemplar.toml` at once.
+
+A **category** is a directory, `standards/<category>/`. Every repository must
+pick a variant of it, so a new category opens an item in every repository
+until each one picks. To let a repository pick `none` instead, add
+`standards/<category>/category.toml`:
+
+```toml
+optional = true
+```
+
+A **variant** is a directory in the category,
+`standards/<category>/<variant>/`, under any name but `none` or `_shared`.
+Bits in `standards/<category>/_shared/` belong to every variant of the
+category.
+
+A **bit** is a file in the variant, at the path it has in the repository:
+
+- A file is a whole-file bit. The repository's file must equal it.
+- A directory named after a TOML, YAML or JSON file holds fragments of that
+  file, one per file, each in the same format. The repository's file must
+  contain each fragment. Tables match key by key, and nested tables the same
+  way; the repository's tables may hold more keys. Every item of a fragment
+  array must match some item of the repository's array, in any order. Scalars
+  must be equal and of the same type, so `true` does not match `1`.
+
+So `standards/lang/python/pyproject.toml/project.toml` is a fragment that a
+repository's `pyproject.toml` must contain, and
+`standards/ci/github/.github/workflows/exemplar.yml` is a whole file.
+
+Then give the category or variant its section on this page, with each bit
+included from `standards/` as the sections above do.

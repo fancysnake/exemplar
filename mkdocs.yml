@@ -60,6 +60,7 @@ watch:
 
 nav:
   - index.md
+  - adopting.md
   - checking.md
   - standards.md
   - architecture.md

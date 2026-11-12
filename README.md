@@ -15,10 +15,14 @@ live here; each repository picks variants and nothing else.
 - A **bit** is one file in a variant. A whole file must match exactly; a
   fragment must be contained in the repository's file of the same name.
 
-Planned, not yet built: each repository will run exemplar in its own CI. The
-run will keep one issue in that repository up to date with a checklist of
-every bit, and fail while any item is open.
+Each repository runs exemplar in its own CI. The run fails while any bit is
+wrong, and keeps one issue in that repository up to date with a checklist of
+every bit.
 <!-- --8<-- [end:intro] -->
+
+## Adopting
+
+See [Adopting exemplar](https://exemplar.fancysnake.dev/adopting/).
 
 ## Development
 
