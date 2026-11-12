@@ -81,10 +81,12 @@ Optional. The linter the repository runs.
 `pyproject.toml` must contain:
 
 ```toml
---8<-- "standards/lint/ruff/pyproject.toml/ruff.toml"
+--8<-- "standards/lint/ruff/pyproject.toml/lint.toml"
 ```
 
-Every rule is on; each repository keeps its own `ignore` list.
+Every rule is on; each repository keeps its own `ignore` list. `line-length`
+is pinned at ruff's default so that a repository that sets another length
+fails the check.
 
 ## Adding a standard
 
