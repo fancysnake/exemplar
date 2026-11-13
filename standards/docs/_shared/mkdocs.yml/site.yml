@@ -1,0 +1,14 @@
+---
+strict: true
+validation:
+  anchors: warn
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+    - media: "(prefers-color-scheme: dark)"
+  features:
+    - content.code.copy
+    - navigation.top
+markdown_extensions:
+  - toc: {permalink: true}

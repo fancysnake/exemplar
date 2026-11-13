@@ -46,6 +46,42 @@ check. Renovate would pin that reference to a commit, and the file would then
 differ from the standard, so the rule turns Renovate off for exemplar. Every
 repository on this variant holds the rule, on Renovate or not.
 
+## docs
+
+Optional. The documentation site, built by mkdocs-material. The variants
+differ in what installs it.
+
+Under every variant, `mkdocs.yml` must contain:
+
+```yaml
+--8<-- "standards/docs/_shared/mkdocs.yml/site.yml"
+```
+
+The palette has a light and a dark entry; each repository keeps its own
+colours. `strict` belongs in the file and not on the command line, so that
+serving the site fails on a broken link as building it does.
+
+### mkdocs-pyproject
+
+For a repository with a `pyproject.toml`, which must contain:
+
+```toml
+--8<-- "standards/docs/mkdocs-pyproject/pyproject.toml/docs.toml"
+```
+
+### mkdocs-mise
+
+For a repository without a `pyproject.toml`. `mise.toml` must contain:
+
+```toml
+--8<-- "standards/docs/mkdocs-mise/mise.toml/docs.toml"
+```
+
+pipx installs mkdocs-material under the Python pinned here, so this fragment
+holds a runtime version where the others leave them out. `--include-deps`
+exposes the `mkdocs` command, which belongs to a dependency of
+mkdocs-material. `uvx = false` because uvx does not accept that argument.
+
 ## lang
 
 Required. The language the repository is written in.
