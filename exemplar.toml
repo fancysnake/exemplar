@@ -1,3 +1,4 @@
 ci = "github"
+docs = "mkdocs-pyproject"
 lang = "python"
 lint = "ruff"

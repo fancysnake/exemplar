@@ -1,0 +1,3 @@
+[tools]
+python = "3.14"
+"pipx:mkdocs-material" = { uvx = false, pipx_args = "--include-deps" }
