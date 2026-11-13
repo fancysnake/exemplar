@@ -24,8 +24,7 @@ named in brackets. A whole-file bit is listed by its path, a fragment bit as
 
 ### lint: ruff
 
-- [ ] pyproject.toml ⊇ ruff.toml — tool.ruff.line-length: expected 88, got 100
-- [x] ruff.toml
+- [ ] pyproject.toml ⊇ lint.toml — tool.ruff.line-length: expected 88, got 100
 
 ### lang: node (frontend)
 

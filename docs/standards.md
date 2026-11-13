@@ -72,6 +72,22 @@ Required. The language the repository is written in.
 --8<-- "standards/lang/node/package.json/module.json"
 ```
 
+## lint
+
+Optional. The linter the repository runs.
+
+### ruff
+
+`pyproject.toml` must contain:
+
+```toml
+--8<-- "standards/lint/ruff/pyproject.toml/lint.toml"
+```
+
+Every rule is on; each repository keeps its own `ignore` list. `line-length`
+is pinned at ruff's default so that a repository that sets another length
+fails the check.
+
 ## Adding a standard
 
 A standard is files in `standards/`; no code changes. A pull request here is
