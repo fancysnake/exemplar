@@ -6,7 +6,9 @@ theme:
   name: material
   palette:
     - media: "(prefers-color-scheme: light)"
+      scheme: default
     - media: "(prefers-color-scheme: dark)"
+      scheme: slate
   features:
     - content.code.copy
     - navigation.top

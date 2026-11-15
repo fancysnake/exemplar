@@ -77,11 +77,6 @@ For a repository without a `pyproject.toml`. `mise.toml` must contain:
 --8<-- "standards/docs/mkdocs-mise/mise.toml/docs.toml"
 ```
 
-pipx installs mkdocs-material under the Python pinned here, so this fragment
-holds a runtime version where the others leave them out. `--include-deps`
-exposes the `mkdocs` command, which belongs to a dependency of
-mkdocs-material. `uvx = false` because uvx does not accept that argument.
-
 ## lang
 
 Required. The language the repository is written in.
