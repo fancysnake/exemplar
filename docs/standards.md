@@ -77,6 +77,10 @@ For a repository without a `pyproject.toml`. `mise.toml` must contain:
 --8<-- "standards/docs/mkdocs-mise/mise.toml/docs.toml"
 ```
 
+mise installs mkdocs through `uvx` only when uv is installed, so `[tools]`
+must also list `uv`. The check does not look for it: a fragment cannot require
+a tool without also pinning its version.
+
 ## lang
 
 Required. The language the repository is written in.
