@@ -1,0 +1,2 @@
+[tools]
+"pipx:mkdocs" = { uvx_args = "--with mkdocs-material" }

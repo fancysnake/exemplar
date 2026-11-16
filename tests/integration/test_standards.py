@@ -8,6 +8,7 @@ def test_reads_the_kept_standards(request):
 
     assert {name: set(category.variants) for name, category in standards.items()} == {
         "ci": {"github"},
+        "docs": {"mkdocs-mise", "mkdocs-pyproject"},
         "lang": {"node", "python"},
         "lint": {"ruff"},
     }
