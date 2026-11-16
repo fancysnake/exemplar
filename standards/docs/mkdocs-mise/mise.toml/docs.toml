@@ -1,2 +1,3 @@
 [tools]
-"pipx:mkdocs" = { uvx_args = "--with mkdocs-material" }
+"pipx:mkdocs" = { version = "latest", uvx_args = "--with mkdocs-material" }
+uv = "latest"
