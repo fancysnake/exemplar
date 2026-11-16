@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning].
   `mise.toml` and `package.json` settings every maintained repository shares.
 - `lint` standard, optional: the `ruff` variant holds the `pyproject.toml`
   settings the maintained repositories share, with every rule selected.
+- `docs` standard, optional: the `mkdocs.yml` settings every variant shares,
+  and the `mkdocs-pyproject` and `mkdocs-mise` variants, which install
+  mkdocs-material from `pyproject.toml` or from `mise.toml`.
 - GitHub Action `fancysnake/exemplar@main`: runs `exemplar check` on the
   checked-out repository against the standards it ships with, writes the
   checklist to the job summary and fails while any item is open.
