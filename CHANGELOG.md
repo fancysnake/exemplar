@@ -7,21 +7,19 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-16
+
 ### Added
 
 - `exemplar` command line, printing its version.
 - `exemplar check`: checks a repository against the standards tree and prints
   a markdown checklist of every bit under each root; exits 1 while any item is
   open.
-- YAML is read by the YAML 1.2 core schema, as the tools it configures read it:
-  `on` and `12:30` stay strings and `0755` is decimal. Merge keys (`<<`) still
-  merge.
+- YAML is read by the YAML 1.2 core schema: `on` and `12:30` stay strings and
+  `0755` is decimal. Merge keys (`<<`) still merge.
 - An `exemplar.toml` whose category, variant, root or unknown key holds a
-  non-printable character, such as a line break, is refused whole, like
-  malformed TOML, and the name is never printed, so it cannot forge a ticked
-  checklist item.
-- Documentation site at <https://exemplar.fancysnake.dev>, built by
-  `mise run site:build`.
+  non-printable character, such as a line break, is refused whole, so it
+  cannot forge a ticked checklist item.
 - `lang` standard: `python` and `node` variants, holding the `pyproject.toml`,
   `mise.toml` and `package.json` settings every maintained repository shares.
 - `lint` standard, optional: the `ruff` variant holds the `pyproject.toml`
@@ -35,11 +33,14 @@ and this project adheres to [Semantic Versioning].
   call to the action turns it off; the standard workflow takes no inputs.
 - `ci` standard: `github` variant, the whole `.github/workflows/exemplar.yml`
   and the `renovate.json` rule that keeps Renovate from pinning it. The
-  workflow runs on pull requests and on pushes to `main` or `master`, and calls
-  the reusable `check.yml`, so a repository holds no pinned action and always
-  runs exemplar at `@main`.
-- Manual pages on adopting exemplar in a repository and on adding a category,
-  variant or bit to the standards.
+  workflow runs on pull requests, on pushes to `main` or `master` and every
+  Monday, and calls the reusable `check.yml`, so a repository always runs
+  exemplar at `@main`.
+- Documentation site at <https://exemplar.fancysnake.dev>, with pages on
+  adopting exemplar in a repository and on adding a category, variant or bit
+  to the standards.
 
+[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/fancysnake/exemplar/releases/tag/v0.1.0
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
