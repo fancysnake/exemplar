@@ -1,0 +1,8 @@
+[tool.coverage.run]
+plugins = ["django_coverage_plugin"]
+
+[tool.coverage.django_coverage_plugin]
+template_extensions = "html"
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]

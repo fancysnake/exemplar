@@ -81,6 +81,46 @@ mise installs mkdocs through `uvx` only when uv is installed, so `[tools]`
 must also list `uv`. The check does not look for it: a fragment cannot require
 a tool without also pinning its version.
 
+## framework
+
+Optional. The frameworks the repository builds on. A repository that uses
+more than one picks each: `framework = ["astro", "react"]`.
+
+### astro
+
+`tsconfig.json` must contain:
+
+```json
+--8<-- "standards/framework/astro/tsconfig.json/astro.json"
+```
+
+`package.json` must contain:
+
+```json
+--8<-- "standards/framework/astro/package.json/scripts.json"
+```
+
+Each repository chooses the Astro preset its `tsconfig.json` extends.
+
+### django
+
+`pyproject.toml` must contain:
+
+```toml
+--8<-- "standards/framework/django/pyproject.toml/django.toml"
+```
+
+Coverage measures the templates, and mypy reads the models through the
+django-stubs plugin. Each repository names its own settings module.
+
+### react
+
+`tsconfig.json` must contain:
+
+```json
+--8<-- "standards/framework/react/tsconfig.json/jsx.json"
+```
+
 ## lang
 
 Required. The language the repository is written in.
