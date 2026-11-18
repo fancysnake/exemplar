@@ -1,9 +1,9 @@
 [tools]
 actionlint = "1.7.12"
-hk = "2.4.0"
-pipx = "1.17.9"
+hk = { version = "2.12.0", workflow = "release.yml" }
+pipx = "1.18.16"
 "pipx:poetry" = "2.5.1"
-pkl = "0.32.1"
+pkl = "0.33.0"
 python = "3.14.8"
 # actionlint hands every `run:` script to shellcheck.
 shellcheck = "0.11.0"
@@ -18,7 +18,7 @@ PACKAGE = "exemplar"
 SRC_PATHS = "src"
 TEST_PATHS = "tests"
 SCRIPT_PATHS = ""
-TOML_PATHS = ".taplo.toml .vekna.toml pyproject.toml mise.toml tingle.toml"
+TOML_PATHS = ".taplo.toml pyproject.toml mise.toml tingle.toml"
 TEST_ENV_FILE = ".env.test"
 
 [settings]
@@ -33,8 +33,6 @@ includes = ["git::https://github.com/fancysnake/shared-configs.git//python.toml"
 # so it follows whichever hk mise just installed.
 [tasks.update]
 run = [
-    "mise upgrade --bump --exclude python --minimum-release-age=7d",
-    "mise install",
     'v=$(mise current hk) && sed -i -E "s#v[0-9.]+/hk@[0-9.]+#v$v/hk@$v#" hk.pkl',
     { task = "dep:upgrade:py" },
 ]
