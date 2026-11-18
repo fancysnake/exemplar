@@ -1,11 +1,12 @@
 """Business logic. Depends on pacts and specs only."""
 
-import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, TypeIs
 
 import msgspec
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 
 from exemplar.pacts import (
     NONE,
@@ -23,7 +24,7 @@ from exemplar.pacts import (
     Section,
     StandardsRepositoryProtocol,
 )
-from exemplar.specs import EXEMPLAR_TOML
+from exemplar.specs import EXEMPLAR_TOML, PYPROJECT_TOML
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
@@ -111,6 +112,8 @@ class BitCheckService:
                 target = _read(self._repo.read_table, path)
                 if isinstance(target, _Unread):
                     return target.problem
+                if bit.path == PYPROJECT_TOML:
+                    return _mismatch(fragment, _named(target), "")
                 return _mismatch(fragment, target, "")
 
 
@@ -155,8 +158,7 @@ def _bits(category: Category, variant: str) -> tuple[Bit, ...]:
 # The first key path where the target does not hold the fragment, or `None`.
 # Tables match key by key, extra keys allowed; every item of a fragment array
 # must match some item of the target array, in any order; scalars must be
-# equal and of one type, so `true` is not `1`. In an array of
-# requirements, strings match by package name alone.
+# equal and of one type, so `true` is not `1`.
 def _mismatch(fragment: Parsed, target: Parsed, key: str) -> str | None:
     if _is_table(fragment):
         if not _is_table(target):
@@ -182,28 +184,46 @@ def _table_mismatch(table: Table, target: Table, key: str) -> str | None:
 
 
 def _array_mismatch(items: list[Parsed], target: list[Parsed], key: str) -> str | None:
-    if key == "project.dependencies" or key.startswith(_REQUIREMENT_TABLES):
-        items, target = _packages(items), _packages(target)
     for item in items:
         if all(_mismatch(item, other, key) is not None for other in target):
             return f"{key}: missing {_show(item)}"
     return None
 
 
-_REQUIREMENT_TABLES = ("project.optional-dependencies.", "dependency-groups.")
-_PACKAGE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
-_SEPARATORS = re.compile(r"[-_.]+")
+# A copy of a pyproject.toml with each requirement cut to its package name,
+# spelled as the packaging specification normalises it: `Foo_Bar[x]>=1` is
+# `foo-bar`. A fragment's bare name then matches under any version constraint.
+def _named(pyproject: Table) -> Table:
+    named = dict(pyproject)
+    if _is_table(project := pyproject.get("project")):
+        named["project"] = project = dict(project)
+        if "dependencies" in project:
+            project["dependencies"] = _packages(project["dependencies"])
+        if "optional-dependencies" in project:
+            project["optional-dependencies"] = _groups(project["optional-dependencies"])
+    if "dependency-groups" in pyproject:
+        named["dependency-groups"] = _groups(pyproject["dependency-groups"])
+    return named
 
 
-# Each requirement string cut to its package name, spelled as the packaging
-# specification normalises it: `Foo_Bar[x]>=1` is `foo-bar`.
-def _packages(items: list[Parsed]) -> list[Parsed]:
-    return [_package(item) if isinstance(item, str) else item for item in items]
+def _groups(groups: Parsed) -> Parsed:
+    if not _is_table(groups):
+        return groups
+    return {name: _packages(group) for name, group in groups.items()}
 
 
+def _packages(requirements: Parsed) -> Parsed:
+    if not _is_array(requirements):
+        return requirements
+    return [_package(item) if isinstance(item, str) else item for item in requirements]
+
+
+# An invalid requirement stays as written, so it matches no bare name.
 def _package(requirement: str) -> str:
-    name = _PACKAGE.match(requirement)
-    return _SEPARATORS.sub("-", name[0]).lower() if name else requirement
+    try:
+        return canonicalize_name(Requirement(requirement).name)
+    except InvalidRequirement:
+        return requirement
 
 
 def _is_table(value: Parsed) -> TypeIs[Table]:

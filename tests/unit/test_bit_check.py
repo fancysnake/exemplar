@@ -54,11 +54,9 @@ def test_bit_is_read_under_its_root():
 FRAGMENT = {"tool": {"ruff": {"line-length": 88, "select": ["E", "F"]}}}
 
 
-def check_fragment(target, fragment=None):
+def check_fragment(target, fragment=None, path="pyproject.toml"):
     bit = FragmentBit(
-        path=PurePosixPath("pyproject.toml"),
-        fragment="ruff.toml",
-        content=fragment or FRAGMENT,
+        path=PurePosixPath(path), fragment="ruff.toml", content=fragment or FRAGMENT
     )
     (problem,) = check([target], bit=bit)
     return problem
@@ -119,30 +117,43 @@ def test_array_items_match_as_fragments():
 
 
 @pytest.mark.parametrize(
-    "target",
+    ("fragment", "target"),
     [
-        {"dependency-groups": {"docs": ["mkdocs-material (>=9.6,<10.0)"]}},
-        {"dependency-groups": {"docs": ["Mkdocs_Material[imaging]>=9"]}},
-        {"project": {"dependencies": ["mkdocs.material"]}},
-        {"project": {"optional-dependencies": {"docs": ["mkdocs-material==9.6"]}}},
+        (
+            {"dependency-groups": {"docs": ["mkdocs-material"]}},
+            {"dependency-groups": {"docs": ["mkdocs-material (>=9.6,<10.0)"]}},
+        ),
+        (
+            {"dependency-groups": {"docs": ["mkdocs-material"]}},
+            {"dependency-groups": {"docs": ["Mkdocs_Material[imaging]>=9"]}},
+        ),
+        (
+            {"dependency-groups": {"docs": ["mkdocs-material"]}},
+            {"dependency-groups": {"docs": [" mkdocs-material>=9"]}},
+        ),
+        (
+            {"project": {"dependencies": ["mkdocs-material"]}},
+            {"project": {"dependencies": ["mkdocs.material"]}},
+        ),
+        (
+            {"project": {"optional-dependencies": {"docs": ["mkdocs-material"]}}},
+            {"project": {"optional-dependencies": {"docs": ["mkdocs-material==9.6"]}}},
+        ),
     ],
-    ids=["constraint", "spelling-and-extras", "dependencies", "optional"],
+    ids=[
+        "constraint",
+        "spelling-and-extras",
+        "leading-whitespace",
+        "dependencies",
+        "optional",
+    ],
 )
-def test_requirements_match_by_package_name(target):
-    (table,) = target
-    fragment = {table: _requirements(target[table], ["mkdocs-material"])}
-
+def test_requirements_match_by_package_name(fragment, target):
     assert check_fragment(target, fragment) is None
 
 
-def _requirements(shape, requirements):
-    if isinstance(shape, list):
-        return requirements
-    return {name: _requirements(value, requirements) for name, value in shape.items()}
-
-
 def test_requirement_of_another_package_fails():
-    fragment = {"dependency-groups": {"docs": ["mkdocs-material (>=9.6,<10.0)"]}}
+    fragment = {"dependency-groups": {"docs": ["mkdocs-material"]}}
     target = {"dependency-groups": {"docs": [{"include-group": "dev"}, "mkdocs>=1"]}}
 
     assert check_fragment(target, fragment) == (
@@ -150,13 +161,63 @@ def test_requirement_of_another_package_fails():
     )
 
 
-def test_strings_outside_requirement_arrays_match_exactly():
-    fragment = {"tool": {"dependencies": ["mkdocs-material"]}}
-    target = {"tool": {"dependencies": ["mkdocs-material>=9"]}}
+@pytest.mark.parametrize(
+    ("fragment", "target", "mismatch"),
+    [
+        (
+            {"project": {"dependencies": ["mkdocs-material"]}},
+            {"project": {"dependencies": "mkdocs-material"}},
+            'project.dependencies: expected an array, got "mkdocs-material"',
+        ),
+        (
+            {"project": {"optional-dependencies": {"docs": ["mkdocs-material"]}}},
+            {"project": {"optional-dependencies": ["mkdocs-material"]}},
+            'project.optional-dependencies: expected a table, got ["mkdocs-material"]',
+        ),
+    ],
+    ids=["dependencies-not-an-array", "groups-not-a-table"],
+)
+def test_misshapen_requirements_fail(fragment, target, mismatch):
+    assert check_fragment(target, fragment) == mismatch
+
+
+def test_invalid_requirement_fails():
+    fragment = {"project": {"dependencies": ["mkdocs-material"]}}
+    target = {"project": {"dependencies": ["mkdocs-material >= >= 9"]}}
 
     assert check_fragment(target, fragment) == (
-        'tool.dependencies: missing "mkdocs-material"'
+        'project.dependencies: missing "mkdocs-material"'
     )
+
+
+@pytest.mark.parametrize(
+    ("fragment", "target", "path", "mismatch"),
+    [
+        (
+            {"tool": {"dependencies": ["mkdocs-material"]}},
+            {"tool": {"dependencies": ["mkdocs-material>=9"]}},
+            "pyproject.toml",
+            'tool.dependencies: missing "mkdocs-material"',
+        ),
+        (
+            {"project.dependencies": ["mkdocs-material"]},
+            {"project.dependencies": ["mkdocs-material>=9"]},
+            "pyproject.toml",
+            'project.dependencies: missing "mkdocs-material"',
+        ),
+        (
+            {"dependency-groups": {"docs": ["mkdocs-material"]}},
+            {"dependency-groups": {"docs": ["mkdocs-material>=9"]}},
+            "uv.toml",
+            'dependency-groups.docs: missing "mkdocs-material"',
+        ),
+    ],
+    ids=["other-table", "dotted-key", "other-file"],
+)
+def test_strings_outside_requirement_arrays_match_exactly(
+    fragment, target, path, mismatch
+):
+    assert check_fragment(target, fragment, path) == mismatch
 
 
 def test_non_string_keys_match_at_every_depth():
