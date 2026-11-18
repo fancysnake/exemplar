@@ -5,6 +5,8 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, TypeIs
 
 import msgspec
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 
 from exemplar.pacts import (
     NONE,
@@ -22,7 +24,7 @@ from exemplar.pacts import (
     Section,
     StandardsRepositoryProtocol,
 )
-from exemplar.specs import EXEMPLAR_TOML
+from exemplar.specs import EXEMPLAR_TOML, PYPROJECT_TOML
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping
@@ -110,6 +112,8 @@ class BitCheckService:
                 target = _read(self._repo.read_table, path)
                 if isinstance(target, _Unread):
                     return target.problem
+                if bit.path == PYPROJECT_TOML:
+                    return _mismatch(fragment, _named(target), "")
                 return _mismatch(fragment, target, "")
 
 
@@ -184,6 +188,42 @@ def _array_mismatch(items: list[Parsed], target: list[Parsed], key: str) -> str 
         if all(_mismatch(item, other, key) is not None for other in target):
             return f"{key}: missing {_show(item)}"
     return None
+
+
+# A copy of a pyproject.toml with each requirement cut to its package name,
+# spelled as the packaging specification normalises it: `Foo_Bar[x]>=1` is
+# `foo-bar`. A fragment's bare name then matches under any version constraint.
+def _named(pyproject: Table) -> Table:
+    named = dict(pyproject)
+    if _is_table(project := pyproject.get("project")):
+        named["project"] = project = dict(project)
+        if "dependencies" in project:
+            project["dependencies"] = _packages(project["dependencies"])
+        if "optional-dependencies" in project:
+            project["optional-dependencies"] = _groups(project["optional-dependencies"])
+    if "dependency-groups" in pyproject:
+        named["dependency-groups"] = _groups(pyproject["dependency-groups"])
+    return named
+
+
+def _groups(groups: Parsed) -> Parsed:
+    if not _is_table(groups):
+        return groups
+    return {name: _packages(group) for name, group in groups.items()}
+
+
+def _packages(requirements: Parsed) -> Parsed:
+    if not _is_array(requirements):
+        return requirements
+    return [_package(item) if isinstance(item, str) else item for item in requirements]
+
+
+# An invalid requirement stays as written, so it matches no bare name.
+def _package(requirement: str) -> str:
+    try:
+        return canonicalize_name(Requirement(requirement).name)
+    except InvalidRequirement:
+        return requirement
 
 
 def _is_table(value: Parsed) -> TypeIs[Table]:

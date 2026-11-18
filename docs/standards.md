@@ -69,6 +69,8 @@ For a repository with a `pyproject.toml`, which must contain:
 --8<-- "standards/docs/mkdocs-pyproject/pyproject.toml/docs.toml"
 ```
 
+The repository chooses the version constraint.
+
 ### mkdocs-mise
 
 For a repository without a `pyproject.toml`. `mise.toml` must contain:
@@ -197,6 +199,12 @@ A **bit** is a file in the variant, at the path it has in the repository:
   way; the repository's tables may hold more keys. Every item of a fragment
   array must match some item of the repository's array, in any order. Scalars
   must be equal and of the same type, so `true` does not match `1`.
+- One exception: in `pyproject.toml`, a string in `project.dependencies`, or
+  in an array under `project.optional-dependencies` or `dependency-groups`,
+  is a requirement and matches by package name. `mkdocs-material` matches
+  `Mkdocs_Material[imaging] (>=9.6,<10.0)`; the version constraint is not
+  checked. The fragment writes the requirement as a bare package name in its
+  normalised form: lowercase, with `-` between words.
 
 So `standards/lang/python/pyproject.toml/project.toml` is a fragment that a
 repository's `pyproject.toml` must contain, and

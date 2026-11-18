@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning].
   maintained repositories share. A repository may pick several, such as
   `framework = ["astro", "react"]`.
 
+### Changed
+
+- A dependency that a `pyproject.toml` fragment requires matches by package
+  name, under any version constraint. The `mkdocs-pyproject` variant no longer
+  holds a `mkdocs-material` version.
+
 ## [0.1.0] - 2026-11-16
 
 ### Added
