@@ -91,7 +91,7 @@ more than one picks each: `framework = ["astro", "react"]`.
 `tsconfig.json` must contain:
 
 ```json
---8<-- "standards/framework/astro/tsconfig.json/astro.json"
+--8<-- "standards/framework/astro/tsconfig.json/paths.json"
 ```
 
 `package.json` must contain:
@@ -107,7 +107,9 @@ Each repository chooses the Astro preset its `tsconfig.json` extends.
 `pyproject.toml` must contain:
 
 ```toml
---8<-- "standards/framework/django/pyproject.toml/django.toml"
+--8<-- "standards/framework/django/pyproject.toml/coverage.toml"
+
+--8<-- "standards/framework/django/pyproject.toml/mypy.toml"
 ```
 
 Coverage measures the templates, and mypy reads the models through the
@@ -120,6 +122,9 @@ django-stubs plugin. Each repository names its own settings module.
 ```json
 --8<-- "standards/framework/react/tsconfig.json/jsx.json"
 ```
+
+Astro's presets point JSX at Astro, so a React island needs
+`jsxImportSource` set back to `react`.
 
 ## lang
 
