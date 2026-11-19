@@ -109,10 +109,10 @@ Each repository chooses the Astro preset its `tsconfig.json` extends.
 `pyproject.toml` must contain:
 
 ```toml
---8<-- "standards/framework/asyncio/pyproject.toml/pytest.toml"
+--8<-- "standards/framework/asyncio/pyproject.toml/dev.toml"
 ```
 
-Each repository chooses its `asyncio_mode`.
+The plugin lets pytest run `async def` tests. The repository chooses the version constraint.
 
 ### django
 
