@@ -104,6 +104,16 @@ more than one picks each: `framework = ["astro", "react"]`.
 
 Each repository chooses the Astro preset its `tsconfig.json` extends.
 
+### asyncio
+
+`pyproject.toml` must contain:
+
+```toml
+--8<-- "standards/framework/asyncio/pyproject.toml/dev.toml"
+```
+
+The plugin lets pytest run `async def` tests. The repository chooses the version constraint.
+
 ### django
 
 `pyproject.toml` must contain:
