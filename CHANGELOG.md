@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning].
   variants hold the `tsconfig.json`, `package.json` and `pyproject.toml`
   settings the maintained repositories share. A repository may pick several,
   such as `framework = ["astro", "react"]`.
+- `lint` standard: the `oxlint` variant holds the `.oxfmtrc.json` import
+  groups the maintained repositories share.
 
 ### Changed
 

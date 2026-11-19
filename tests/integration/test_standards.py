@@ -16,7 +16,7 @@ def test_reads_the_kept_standards(request):
         "docs": {"mkdocs-mise", "mkdocs-pyproject"},
         "framework": {"astro", "asyncio", "django", "react"},
         "lang": {"node", "python"},
-        "lint": {"ruff"},
+        "lint": {"oxlint", "ruff"},
     }
 
 
