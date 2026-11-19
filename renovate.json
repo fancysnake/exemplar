@@ -5,6 +5,11 @@
   "minimumReleaseAgePackageManagerSync": true,
   "packageRules": [
     {
+      "description": "the ci standard holds exemplar at @main, unpinned",
+      "matchPackageNames": ["fancysnake/exemplar"],
+      "enabled": false
+    },
+    {
       "description": "One PR for all small updates",
       "groupName": "non-major dependencies",
       "groupSlug": "non-major",
