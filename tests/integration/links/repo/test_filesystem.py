@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import errno
 import math
 import os
@@ -135,7 +135,7 @@ def test_yaml_reads_on_key_as_string(tmp_path):
         ("0b11", "0b11"),
         ("2026-01-01", "2026-01-01"),
         ("=", "="),
-        ("!!timestamp 2026-01-01", datetime.date(2026, 1, 1)),
+        ("!!timestamp 2026-01-01", dt.date(2026, 1, 1)),
     ],
 )
 def test_yaml_reads_scalars_by_the_yaml_12_core_schema(tmp_path, scalar, value):
