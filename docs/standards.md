@@ -104,6 +104,16 @@ more than one picks each: `framework = ["astro", "react"]`.
 
 Each repository chooses the Astro preset its `tsconfig.json` extends.
 
+### asyncio
+
+`pyproject.toml` must contain:
+
+```toml
+--8<-- "standards/framework/asyncio/pyproject.toml/pytest.toml"
+```
+
+Each repository chooses its `asyncio_mode`.
+
 ### django
 
 `pyproject.toml` must contain:

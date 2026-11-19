@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning].
 
 ### Added
 
-- `framework` standard, optional: the `astro`, `django` and `react` variants
-  hold the `tsconfig.json`, `package.json` and `pyproject.toml` settings the
-  maintained repositories share. A repository may pick several, such as
-  `framework = ["astro", "react"]`.
+- `framework` standard, optional: the `astro`, `asyncio`, `django` and `react`
+  variants hold the `tsconfig.json`, `package.json` and `pyproject.toml`
+  settings the maintained repositories share. A repository may pick several,
+  such as `framework = ["astro", "react"]`.
 
 ### Changed
 
