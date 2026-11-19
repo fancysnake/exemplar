@@ -3,6 +3,21 @@
   "extends": ["config:best-practices", ":preserveSemverRanges"],
   "minimumReleaseAge": "7 days",
   "minimumReleaseAgePackageManagerSync": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "hk.pkl names hk's pkl packages by release",
+      "managerFilePatterns": ["/^hk\\.pkl$/"],
+      "matchStrings": [
+        "releases/download/v(?<currentValue>\\d+\\.\\d+\\.\\d+)/hk@\\d+\\.\\d+\\.\\d+"
+      ],
+      "autoReplaceStringTemplate": "releases/download/v{{{newValue}}}/hk@{{{newValue}}}",
+      "depNameTemplate": "hk",
+      "packageNameTemplate": "jdx/hk",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ],
   "packageRules": [
     {
       "description": "the ci standard holds exemplar at @main, unpinned",
