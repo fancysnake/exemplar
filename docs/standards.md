@@ -168,6 +168,17 @@ Required. The language the repository is written in.
 
 Optional. The linter the repository runs.
 
+### oxlint
+
+oxlint with its formatter, oxfmt. `.oxfmtrc.json` must contain:
+
+```json
+--8<-- "standards/lint/oxlint/.oxfmtrc.json/imports.json"
+```
+
+Each repository keeps its own oxlint rules. The check finds each import group
+in the array but not its position: an array matches in any order.
+
 ### ruff
 
 `pyproject.toml` must contain:
