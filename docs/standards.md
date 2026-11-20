@@ -191,6 +191,21 @@ Every rule is on; each repository keeps its own `ignore` list. `line-length`
 is pinned at ruff's default so that a repository that sets another length
 fails the check.
 
+## owner
+
+Optional. Who owns the project. A repository with another owner, such as a
+fork, picks `none`.
+
+### radoslaw-ganczarek
+
+`pyproject.toml` must contain:
+
+```toml
+--8<-- "standards/owner/radoslaw-ganczarek/pyproject.toml/authors.toml"
+```
+
+The repository may list more authors.
+
 ## Adding a standard
 
 A standard is files in `standards/`; no code changes. A pull request here is

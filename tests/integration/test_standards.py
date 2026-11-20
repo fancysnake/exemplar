@@ -17,6 +17,7 @@ def test_reads_the_kept_standards(request):
         "framework": {"astro", "asyncio", "django", "react"},
         "lang": {"node", "python"},
         "lint": {"oxlint", "ruff"},
+        "owner": {"radoslaw-ganczarek"},
     }
 
 
