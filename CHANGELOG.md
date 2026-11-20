@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
 ### Added
 
 - `framework` standard, optional: the `astro`, `asyncio`, `django` and `react`
@@ -15,17 +17,18 @@ and this project adheres to [Semantic Versioning].
   such as `framework = ["astro", "react"]`.
 - `lint` standard: the `oxlint` variant holds the `.oxfmtrc.json` import
   groups the maintained repositories share.
-
 - `owner` standard, optional: the `radoslaw-ganczarek` variant holds the
   `pyproject.toml` author.
 
 ### Changed
 
-- The `python` variant of the `lang` standard no longer requires an author, so
-  a repository with another owner can pick it.
+- Every `exemplar.toml` picks `framework` and `owner`, each a variant or
+  `none`.
+- The `python` variant of the `lang` standard leaves the author to the `owner`
+  standard, so a repository with another owner can pick it.
 - A dependency that a `pyproject.toml` fragment requires matches by package
-  name, under any version constraint. The `mkdocs-pyproject` variant no longer
-  holds a `mkdocs-material` version.
+  name, under any version constraint. The `mkdocs-pyproject` variant leaves
+  the `mkdocs-material` version to the repository.
 
 ## [0.1.0] - 2026-11-16
 
@@ -63,7 +66,8 @@ and this project adheres to [Semantic Versioning].
   adopting exemplar in a repository and on adding a category, variant or bit
   to the standards.
 
-[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/fancysnake/exemplar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fancysnake/exemplar/releases/tag/v0.1.0
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
