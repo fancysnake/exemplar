@@ -16,8 +16,13 @@ and this project adheres to [Semantic Versioning].
 - `lint` standard: the `oxlint` variant holds the `.oxfmtrc.json` import
   groups the maintained repositories share.
 
+- `owner` standard, optional: the `radoslaw-ganczarek` variant holds the
+  `pyproject.toml` author.
+
 ### Changed
 
+- The `python` variant of the `lang` standard no longer requires an author, so
+  a repository with another owner can pick it.
 - A dependency that a `pyproject.toml` fragment requires matches by package
   name, under any version constraint. The `mkdocs-pyproject` variant no longer
   holds a `mkdocs-material` version.
