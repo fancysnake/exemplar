@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+### Changed
+
+- `docs` standard, `mkdocs-mise` variant: `mise.toml` must also hold the
+  `site:material` task, and `site:build` and `site:dev` must depend on it. The
+  task fails with the repair command when the mkdocs install has no
+  mkdocs-material, which happens when another project on the machine installed
+  the same mkdocs version without it.
+
 ## [0.2.0] - 2026-11-20
 
 ### Added
