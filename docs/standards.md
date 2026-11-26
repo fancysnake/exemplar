@@ -83,6 +83,18 @@ mise installs mkdocs through `uvx` only when uv is installed, so `[tools]`
 must also list `uv`. The check does not look for it: a fragment cannot require
 a tool without also pinning its version.
 
+`mise.toml` must also contain:
+
+```toml
+--8<-- "standards/docs/mkdocs-mise/mise.toml/site.toml"
+```
+
+mise keeps one install of each mkdocs version for the whole machine. When
+another project installed that version without mkdocs-material, mise reuses
+the install and the theme is missing. `site:material` then stops `site:build`
+and `site:dev` with the command that repairs the install. Each repository
+writes its own `run` for those two tasks.
+
 ## framework
 
 Optional. The frameworks the repository builds on. A repository that uses

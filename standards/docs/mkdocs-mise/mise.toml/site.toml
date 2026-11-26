@@ -1,0 +1,13 @@
+[tasks."site:material"]
+run = '''
+find "$(mise where pipx:mkdocs)" -path '*/site-packages/material/__init__.py' | grep -q . || {
+  echo 'The mkdocs install has no mkdocs-material: another project installed this mkdocs version without it. Repair: mise install --force pipx:mkdocs' >&2
+  exit 1
+}
+'''
+
+[tasks."site:build"]
+depends = ["site:material"]
+
+[tasks."site:dev"]
+depends = ["site:material"]
