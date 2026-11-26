@@ -1,0 +1,8 @@
+{
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "enabled": false
+    }
+  ]
+}
