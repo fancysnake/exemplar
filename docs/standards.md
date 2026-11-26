@@ -218,6 +218,81 @@ fork, picks `none`.
 
 The repository may list more authors.
 
+## renovate
+
+Optional. How Renovate updates the dependencies. Each variant is one package
+system; a repository picks every variant that it uses:
+`renovate = ["poetry", "hk"]`.
+
+Under every variant, `renovate.json` must contain:
+
+```json
+--8<-- "standards/renovate/_shared/renovate.json/base.json"
+```
+
+Renovate offers a release only when the release is 7 days old. `strict` makes
+Renovate skip a newer release and offer the newest release that is old enough.
+
+`renovate.json` must also contain:
+
+```json
+--8<-- "standards/renovate/_shared/renovate.json/groups.json"
+```
+
+The first rule puts every minor, patch and digest update in one pull request.
+The second rule gives a minor update of a 0.x package its own pull request,
+because a 0.x minor can break. Renovate applies the rules in order, so the
+second rule must come after the first. The check does not look at the order.
+
+### poetry
+
+For a repository whose `pyproject.toml` holds the dependencies.
+`renovate.json` must contain:
+
+```json
+--8<-- "standards/renovate/poetry/renovate.json/ranges.json"
+```
+
+`config:best-practices` pins development dependencies to one version. The
+preset keeps a range such as `>=1.2,<2` a range.
+
+### mise-python
+
+For a repository whose `requires-python` allows one minor version and whose
+`mise.toml` installs Python. `renovate.json` must contain:
+
+```json
+--8<-- "standards/renovate/mise-python/renovate.json/minor.json"
+```
+
+The second rule turns off the update to the next Python minor, which
+`requires-python` forbids. Without the first rule, Renovate offers only the
+newest version, so no patch arrives after the next minor is released.
+
+### aube
+
+For a repository that installs Node packages with aube. `renovate.json` must
+contain:
+
+```json
+--8<-- "standards/renovate/aube/renovate.json/npm.json"
+```
+
+Renovate cannot write `aube-lock.yaml`. An npm update would change only
+`package.json`, and the install from the frozen lockfile would fail. The
+repository updates its Node packages with `aube update`.
+
+### hk
+
+For a repository with an `hk.pkl`. `renovate.json` must contain:
+
+```json
+--8<-- "standards/renovate/hk/renovate.json/pkl.json"
+```
+
+`hk.pkl` names the hk release in a package URL that no Renovate manager
+reads. The custom manager updates that URL from the releases of `jdx/hk`.
+
 ## Adding a standard
 
 A standard is files in `standards/`; no code changes. A pull request here is

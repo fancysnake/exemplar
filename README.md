@@ -7,7 +7,7 @@ exemplar keeps a set of repositories on one set of standards. The standards
 live here; each repository picks variants and nothing else.
 
 - A **category** is one part of a project's setup: language, framework, docs,
-  lint, CI, owner. Every repository fills every category, or picks `none`
+  lint, CI, owner, Renovate. Every repository fills every category, or picks `none`
   where the category allows it.
 - A **variant** is one way to fill a category: docs through `pyproject.toml`
   or through `mise.toml`. A repository may pick several, each under its own

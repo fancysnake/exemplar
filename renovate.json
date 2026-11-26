@@ -3,6 +3,7 @@
   "extends": ["config:best-practices", ":preserveSemverRanges"],
   "minimumReleaseAge": "7 days",
   "minimumReleaseAgePackageManagerSync": true,
+  "internalChecksFilter": "strict",
   "customManagers": [
     {
       "customType": "regex",
@@ -37,9 +38,15 @@
       "groupName": null
     },
     {
+      "description": "Offer Python patches even when a newer minor exists",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["python"],
+      "separateMinorPatch": true
+    },
+    {
       "description": "requires-python allows only 3.14",
       "matchManagers": ["mise"],
-      "matchPackageNames": ["python"],
+      "matchDepNames": ["python"],
       "matchUpdateTypes": ["minor"],
       "enabled": false
     }

@@ -22,6 +22,7 @@ def test_reads_the_kept_standards(request):
         "lang": {"node", "python"},
         "lint": {"oxlint", "ruff"},
         "owner": {"radoslaw-ganczarek"},
+        "renovate": {"aube", "hk", "mise-python", "poetry"},
     }
 
 

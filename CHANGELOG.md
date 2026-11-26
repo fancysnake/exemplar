@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+### Added
+
+- `renovate` standard, optional: the `renovate.json` settings the maintained
+  repositories share, and one variant for each package system: `poetry`,
+  `mise-python`, `aube` and `hk`. A repository picks every variant that it
+  uses, such as `renovate = ["poetry", "hk"]`. Every `exemplar.toml` picks
+  `renovate`, a variant or `none`.
+
 ### Changed
 
 - `docs` standard, `mkdocs-mise` variant: `mise.toml` must also hold the

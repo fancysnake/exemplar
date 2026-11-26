@@ -1,0 +1,14 @@
+{
+  "packageRules": [
+    {
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major",
+      "matchUpdateTypes": ["minor", "patch", "digest"]
+    },
+    {
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["minor"],
+      "groupName": null
+    }
+  ]
+}
