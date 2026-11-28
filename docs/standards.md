@@ -1,7 +1,8 @@
 # Standards
 
-The standards live in `standards/` in this repository, one directory per
-category and one per variant inside it. A repository picks one or more variants
+The standards live in `src/exemplar/standards/` in this repository, one
+directory per category and one per variant inside it. Every install of exemplar
+carries them. The paths on this page start at `src/exemplar/`. A repository picks one or more variants
 of each category in its `exemplar.toml`, each under its own root directory;
 [Checking a repository](checking.md) covers the check itself.
 
@@ -258,16 +259,28 @@ preset keeps a range such as `>=1.2,<2` a range.
 
 ### mise-python
 
-For a repository whose `requires-python` allows one minor version and whose
-`mise.toml` installs Python. `renovate.json` must contain:
+For a repository whose `mise.toml` installs Python. `renovate.json` must
+contain:
 
 ```json
---8<-- "standards/renovate/mise-python/renovate.json/minor.json"
+--8<-- "standards/renovate/mise-python/renovate.json/patch.json"
 ```
 
-The second rule turns off the update to the next Python minor, which
-`requires-python` forbids. Without the first rule, Renovate offers only the
-newest version, so no patch arrives after the next minor is released.
+Without the rule, Renovate offers only the newest version, so no patch arrives
+after the next minor is released.
+
+The standard does not say which Python minors a repository supports. A
+repository whose `requires-python` allows one minor adds its own rule that
+turns off the minor update:
+
+```json
+{
+  "matchManagers": ["mise"],
+  "matchDepNames": ["python"],
+  "matchUpdateTypes": ["minor"],
+  "enabled": false
+}
+```
 
 ### aube
 

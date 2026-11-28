@@ -51,8 +51,8 @@ runs:
         checklist="$(mktemp -d "$RUNNER_TEMP/exemplar.XXXXXX")/checklist.md"
         echo "checklist=$checklist" >> "$GITHUB_OUTPUT"
         status=0
-        "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" \
-          --standards "$GITHUB_ACTION_PATH/standards" > "$checklist" || status=$?
+        "$RUNNER_TEMP/exemplar/bin/exemplar" check "$REPO" > "$checklist" \
+          || status=$?
         echo "status=$status" >> "$GITHUB_OUTPUT"
         tee -a "$GITHUB_STEP_SUMMARY" < "$checklist"
         exit "$status"

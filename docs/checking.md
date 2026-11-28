@@ -5,11 +5,25 @@ every bit of every pick under each of its roots, and prints a markdown
 checklist:
 
 ```bash
-exemplar check path/to/repo --standards path/to/standards
+exemplar check path/to/repo
 ```
 
-The repository defaults to the current directory. `--standards` is the
-standards tree: one directory per category, one per variant inside it.
+The repository defaults to the current directory. exemplar ships with its
+standards tree and checks by it. `--standards path/to/standards` names another
+tree: one directory per category, one per variant inside it.
+
+## From any machine
+
+exemplar runs on Python 3.14 only. The repository it checks may use any
+Python. pipx fetches Python 3.14 when the machine has none, installs exemplar
+from GitHub into a temporary environment and runs it:
+
+```bash
+pipx run --fetch-python=missing --python 3.14 \
+  --spec git+https://github.com/fancysnake/exemplar@main exemplar check .
+```
+
+An older pipx names the flag `--fetch-missing-python`.
 
 ## The checklist
 

@@ -4,12 +4,6 @@
       "matchManagers": ["mise"],
       "matchDepNames": ["python"],
       "separateMinorPatch": true
-    },
-    {
-      "matchManagers": ["mise"],
-      "matchDepNames": ["python"],
-      "matchUpdateTypes": ["minor"],
-      "enabled": false
     }
   ]
 }

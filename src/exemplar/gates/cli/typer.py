@@ -42,7 +42,7 @@ def _root_callback(version: str) -> Callable[[], None]:
     return root
 
 
-def _add_check(app: typer.Typer, audit: Audit) -> None:
+def _add_check(app: typer.Typer, audit: Audit, shipped: Path) -> None:
     def check(
         repo: Annotated[
             Path,
@@ -54,9 +54,12 @@ def _add_check(app: typer.Typer, audit: Audit) -> None:
         standards: Annotated[
             Path,
             typer.Option(
-                exists=True, file_okay=False, help="The standards tree to check by."
+                exists=True,
+                file_okay=False,
+                help="The standards tree to check by.",
+                show_default="the tree exemplar ships with",
             ),
-        ],
+        ] = shipped,
     ) -> None:
         try:
             report = audit(repo, standards).audit()
@@ -117,14 +120,14 @@ def _result(result: Result) -> str:
 class CliGate:
     """The `exemplar` command line, handed what it shows by inits."""
 
-    def __init__(self, version: str, audit: Audit) -> None:
+    def __init__(self, version: str, audit: Audit, standards: Path) -> None:
         self.app = typer.Typer(
             help="Check a repository against the shared standards.",
             no_args_is_help=True,
             add_completion=False,
         )
         self.app.callback()(_root_callback(version))
-        _add_check(self.app, audit)
+        _add_check(self.app, audit, standards)
 
     def run(self) -> None:
         self.app(prog_name="exemplar")

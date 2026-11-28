@@ -48,15 +48,16 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
   # Pages include shared prose from README.md and CHANGELOG.md rather than
-  # copying it; base_path is the repo root, where mkdocs runs, and check_paths
-  # fails the build when a path or a named section goes missing.
-  - pymdownx.snippets: {base_path: ["."], check_paths: true}
+  # copying it; base_path is the repo root, where mkdocs runs, and the package,
+  # which holds the standards tree. check_paths fails the build when a path or
+  # a named section goes missing.
+  - pymdownx.snippets: {base_path: [".", "src/exemplar"], check_paths: true}
 
 # `site:dev` watches only docs/ and this file; the snippet sources sit outside.
 watch:
   - README.md
   - CHANGELOG.md
-  - standards
+  - src/exemplar/standards
 
 nav:
   - index.md
