@@ -7,18 +7,18 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-28
+
 ### Added
 
 - `exemplar check` without `--standards` checks by the standards tree that
-  exemplar ships with. The wheel carries the tree, so one pipx command checks
-  a repository on any Python; the manual's page on checking gives the command.
+  exemplar ships with, so one pipx command checks a repository on any Python.
 
 ### Changed
 
 - The standards tree moved from `standards/` to `src/exemplar/standards/`.
 - `renovate` standard, `mise-python` variant: `renovate.json` need not turn
-  off the update to the next Python minor. A repository that supports a range
-  of Python versions can pick the variant.
+  off the update to the next Python minor.
 
 ## [0.3.0] - 2026-11-27
 
@@ -96,7 +96,8 @@ and this project adheres to [Semantic Versioning].
   adopting exemplar in a repository and on adding a category, variant or bit
   to the standards.
 
-[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/fancysnake/exemplar/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/fancysnake/exemplar/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/fancysnake/exemplar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fancysnake/exemplar/releases/tag/v0.1.0
