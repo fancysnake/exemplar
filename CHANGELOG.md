@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning].
 ### Changed
 
 - The standards tree moved from `standards/` to `src/exemplar/standards/`.
+- `renovate` standard, `mise-python` variant: `renovate.json` need not turn
+  off the update to the next Python minor. A repository that supports a range
+  of Python versions can pick the variant.
 
 ## [0.3.0] - 2026-11-27
 
