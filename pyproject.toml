@@ -1,6 +1,6 @@
 [project]
 name = "exemplar"
-version = "0.3.0"
+version = "0.4.0"
 description = "One set of standards across many repositories, checked in each repository's CI"
 authors = [{ name = "Radosław Ganczarek", email = "radoslaw@ganczarek.in" }]
 license = "MIT"
