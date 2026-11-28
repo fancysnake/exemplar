@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
 ### Added
 
 - `renovate` standard, optional: the `renovate.json` settings the maintained
@@ -20,8 +22,7 @@ and this project adheres to [Semantic Versioning].
 - `docs` standard, `mkdocs-mise` variant: `mise.toml` must also hold the
   `site:material` task, and `site:build` and `site:dev` must depend on it. The
   task fails with the repair command when the mkdocs install has no
-  mkdocs-material, which happens when another project on the machine installed
-  the same mkdocs version without it.
+  mkdocs-material.
 
 ## [0.2.0] - 2026-11-20
 
@@ -82,7 +83,8 @@ and this project adheres to [Semantic Versioning].
   adopting exemplar in a repository and on adding a category, variant or bit
   to the standards.
 
-[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/fancysnake/exemplar/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/fancysnake/exemplar/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/fancysnake/exemplar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fancysnake/exemplar/releases/tag/v0.1.0
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
