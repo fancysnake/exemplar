@@ -1,9 +1,9 @@
 [tools]
 actionlint = "1.7.12"
-hk = "2.12.0"
-pipx = "1.18.16"
-"pipx:poetry" = "2.5.1"
-pkl = "0.33.0"
+hk = "2.13.0"
+pipx = "1.18.19"
+"pipx:poetry" = "2.5.2"
+pkl = "0.33.1"
 python = "3.14.8"
 # actionlint hands every `run:` script to shellcheck.
 shellcheck = "0.11.0"
