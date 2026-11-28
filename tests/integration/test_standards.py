@@ -11,7 +11,7 @@ from exemplar.pacts import FragmentBit
 
 
 def test_reads_the_kept_standards(request):
-    root = request.config.rootpath / "standards"
+    root = request.config.rootpath / "src/exemplar/standards"
 
     standards = FilesystemStandardsRepository(root).read()
 
@@ -29,7 +29,7 @@ def test_reads_the_kept_standards(request):
 # The check normalises only the repository's requirements, so a constraint or
 # a non-normalised spelling in a standard would never match.
 def test_pyproject_requirements_are_bare_package_names(request):
-    root = request.config.rootpath / "standards"
+    root = request.config.rootpath / "src/exemplar/standards"
     standards = FilesystemStandardsRepository(root).read()
     fragments = [
         bit.content
@@ -70,7 +70,8 @@ def site_material_fixture(request, tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", f"{stub.parent}{os.pathsep}{os.environ['PATH']}")
     monkeypatch.setenv("MKDOCS_INSTALL", str(install))
     fragment = (
-        request.config.rootpath / "standards/docs/mkdocs-mise/mise.toml/site.toml"
+        request.config.rootpath
+        / "src/exemplar/standards/docs/mkdocs-mise/mise.toml/site.toml"
     )
     script = tomllib.loads(fragment.read_text())["tasks"]["site:material"]["run"]
 
@@ -99,7 +100,8 @@ def test_site_material_fails_with_the_repair_when_material_is_missing(site_mater
 
 def test_site_tasks_wait_for_site_material(request):
     fragment = (
-        request.config.rootpath / "standards/docs/mkdocs-mise/mise.toml/site.toml"
+        request.config.rootpath
+        / "src/exemplar/standards/docs/mkdocs-mise/mise.toml/site.toml"
     )
     tasks = tomllib.loads(fragment.read_text())["tasks"]
 

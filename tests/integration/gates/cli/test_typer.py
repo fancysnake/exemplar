@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -45,24 +46,25 @@ def standards_fixture(tmp_path):
     return write(tmp_path / "standards", STANDARDS)
 
 
+def gate(shipped=Path()):
+    return CliGate(version="1.2.3", audit=audit, standards=shipped)
+
+
 def check(repo, standards):
-    gate = CliGate(version="1.2.3", audit=audit)
     return CliRunner().invoke(
-        gate.app, ["check", str(repo), "--standards", str(standards)]
+        gate().app, ["check", str(repo), "--standards", str(standards)]
     )
 
 
 def test_version_prints_and_exits():
-    result = CliRunner().invoke(
-        CliGate(version="1.2.3", audit=audit).app, ["--version"]
-    )
+    result = CliRunner().invoke(gate().app, ["--version"])
 
     assert result.exit_code == 0
     assert result.output == "1.2.3\n"
 
 
 def test_no_arguments_prints_help():
-    result = CliRunner().invoke(CliGate(version="1.2.3", audit=audit).app, [])
+    result = CliRunner().invoke(gate().app, [])
 
     assert result.exit_code == USAGE_ERROR
     assert "Usage: " in plain(result.output)
@@ -166,6 +168,15 @@ def test_missing_exemplar_toml_is_open(tmp_path, standards):
 
     assert result.exit_code == 1
     assert result.output == "### exemplar.toml\n\n- [ ] missing\n"
+
+
+def test_check_without_standards_uses_the_shipped_tree(tmp_path, standards):
+    repo = write(tmp_path / "repo", PASSING)
+
+    result = CliRunner().invoke(gate(standards).app, ["check", str(repo)])
+
+    assert result.exit_code == 0
+    assert "- [x] ruff.toml" in result.output
 
 
 def test_broken_standards_is_a_usage_error(tmp_path, standards):

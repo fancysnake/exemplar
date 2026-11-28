@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from importlib.metadata import version
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from exemplar.gates.cli.typer import CliGate
 from exemplar.links.repo.filesystem import FilesystemRepoRepository
 from exemplar.links.standards.filesystem import FilesystemStandardsRepository
 from exemplar.mills import AuditService, BitCheckService, PicksService
 
-if TYPE_CHECKING:
-    from pathlib import Path
+# The standards tree is package data, so every install carries it.
+STANDARDS = Path(__file__).parent.parent / "standards"
 
 
 def audit(repo: Path, standards: Path) -> AuditService:
@@ -24,5 +24,5 @@ def audit(repo: Path, standards: Path) -> AuditService:
 
 
 def run() -> None:
-    """Hand the installed version and the audit to the command line and run it."""
-    CliGate(version=version("exemplar"), audit=audit).run()
+    """Hand the version, the audit and the shipped standards to the command line."""
+    CliGate(version=version("exemplar"), audit=audit, standards=STANDARDS).run()

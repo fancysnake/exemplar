@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+### Added
+
+- `exemplar check` without `--standards` checks by the standards tree that
+  exemplar ships with. The wheel carries the tree, so one pipx command checks
+  a repository on any Python; the manual's page on checking gives the command.
+
+### Changed
+
+- The standards tree moved from `standards/` to `src/exemplar/standards/`.
+
 ## [0.3.0] - 2026-11-27
 
 ### Added

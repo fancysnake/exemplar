@@ -1,7 +1,8 @@
 # Standards
 
-The standards live in `standards/` in this repository, one directory per
-category and one per variant inside it. A repository picks one or more variants
+The standards live in `src/exemplar/standards/` in this repository, one
+directory per category and one per variant inside it. Every install of exemplar
+carries them. The paths on this page start at `src/exemplar/`. A repository picks one or more variants
 of each category in its `exemplar.toml`, each under its own root directory;
 [Checking a repository](checking.md) covers the check itself.
 
